@@ -306,6 +306,106 @@ export type Database = {
         }
         Relationships: []
       }
+      contacts: {
+        Row: {
+          id: string
+          name: string
+          role: string | null
+          company: string | null
+          phone: string | null
+          email: string | null
+          website: string | null
+          status: string | null
+          notes: string | null
+          linked_property_id: string | null
+          added_by: string | null
+          created_at: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          role?: string | null
+          company?: string | null
+          phone?: string | null
+          email?: string | null
+          website?: string | null
+          status?: string | null
+          notes?: string | null
+          linked_property_id?: string | null
+          added_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          role?: string | null
+          company?: string | null
+          phone?: string | null
+          email?: string | null
+          website?: string | null
+          status?: string | null
+          notes?: string | null
+          linked_property_id?: string | null
+          added_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_linked_property_id_fkey"
+            columns: ["linked_property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_notes: {
+        Row: {
+          id: string
+          contact_id: string
+          content: string
+          note_type: string | null
+          amount: number | null
+          note_date: string | null
+          added_by: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          contact_id: string
+          content: string
+          note_type?: string | null
+          amount?: number | null
+          note_date?: string | null
+          added_by?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          contact_id?: string
+          content?: string
+          note_type?: string | null
+          amount?: number | null
+          note_date?: string | null
+          added_by?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       property_schools: {
         Row: {
           property_id: string

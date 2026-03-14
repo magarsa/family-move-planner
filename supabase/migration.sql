@@ -228,3 +228,63 @@ do $$ begin
   alter publication supabase_realtime add table schools;
 exception when duplicate_object then null;
 end $$;
+
+-- ============================================================
+-- Migration 003: Contacts & Contact Notes
+-- ============================================================
+
+-- People and companies involved in the relocation
+create table if not exists contacts (
+  id                  uuid primary key default gen_random_uuid(),
+  name                text not null,
+  role                text,
+  company             text,
+  phone               text,
+  email               text,
+  website             text,
+  status              text default 'Active'
+                        check (status in ('Prospect', 'Active', 'Hired', 'Passed')),
+  notes               text,
+  linked_property_id  uuid references properties(id) on delete set null,
+  added_by            text,
+  created_at          timestamptz default now(),
+  updated_at          timestamptz default now(),
+  updated_by          text
+);
+
+-- Conversation log: calls, emails, estimates, etc.
+create table if not exists contact_notes (
+  id          uuid primary key default gen_random_uuid(),
+  contact_id  uuid not null references contacts(id) on delete cascade,
+  content     text not null,
+  note_type   text default 'Note'
+                check (note_type in ('Note', 'Call', 'Email', 'Meeting', 'Estimate', 'Other')),
+  amount      numeric(12,2),
+  note_date   timestamptz default now(),
+  added_by    text,
+  created_at  timestamptz default now()
+);
+
+create index if not exists contacts_role_idx         on contacts(role);
+create index if not exists contacts_status_idx       on contacts(status);
+create index if not exists contact_notes_contact_idx on contact_notes(contact_id);
+
+do $$ begin
+  if not exists (
+    select 1 from pg_trigger where tgname = 'set_updated_at_contacts'
+  ) then
+    create trigger set_updated_at_contacts
+      before update on contacts
+      for each row execute function trg_set_updated_at();
+  end if;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table contacts;
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter publication supabase_realtime add table contact_notes;
+exception when duplicate_object then null;
+end $$;

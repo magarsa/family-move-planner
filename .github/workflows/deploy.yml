@@ -27,11 +27,24 @@ jobs:
       - name: Build
         run: npm run build
 
-  # ── Job 2: Deploy (only if CI passes) ─────────────────────────────────────
+  # ── Job 2: Database migrations (only if CI passes) ────────────────────────
+  migrate:
+    name: Database migrations
+    runs-on: ubuntu-latest
+    needs: ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migrations
+        run: psql "${{ secrets.DATABASE_URL }}" < supabase/migration.sql
+        env:
+          PGSSLMODE: require
+
+  # ── Job 3: Deploy (only if CI + migrations pass) ──────────────────────────
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
-    needs: ci
+    needs: [ci, migrate]
     steps:
       - uses: actions/checkout@v4
 
