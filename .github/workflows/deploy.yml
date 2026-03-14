@@ -35,10 +35,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Apply migrations
-        run: psql "${{ secrets.DATABASE_URL }}" < supabase/migration.sql
+        run: |
+          PROJECT_REF=$(echo "$SUPABASE_URL" | sed 's|https://||' | cut -d'.' -f1)
+          supabase db execute --project-ref "$PROJECT_REF" --file supabase/migration.sql
         env:
-          PGSSLMODE: require
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
 
   # ── Job 3: Deploy (only if CI + migrations pass) ──────────────────────────
   deploy:
