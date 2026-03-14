@@ -1,16 +1,18 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, CheckSquare, GitBranch, HelpCircle, BookOpen, User2, LogOut, Sun, Moon } from 'lucide-react'
+import { LayoutDashboard, CheckSquare, GitBranch, HelpCircle, BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap } from 'lucide-react'
 import { useUser } from '../hooks/useUser'
 import { useTheme } from '../hooks/useTheme'
 import { motion } from 'framer-motion'
 
 const navItems = [
-  { to: '/',          label: 'Dashboard',   icon: LayoutDashboard },
-  { to: '/todos',     label: 'To-Do List',  icon: CheckSquare },
-  { to: '/branches',  label: 'Decisions',   icon: GitBranch },
-  { to: '/whatifs',   label: 'What-Ifs',    icon: HelpCircle },
-  { to: '/notes',     label: 'Journal',     icon: BookOpen },
-  { to: '/profile',   label: 'Our Profile', icon: User2 },
+  { to: '/',            label: 'Dashboard',   icon: LayoutDashboard },
+  { to: '/todos',       label: 'To-Do List',  icon: CheckSquare },
+  { to: '/branches',    label: 'Decisions',   icon: GitBranch },
+  { to: '/properties',  label: 'Properties',  icon: Home },
+  { to: '/schools',     label: 'Schools',     icon: GraduationCap },
+  { to: '/whatifs',     label: 'What-Ifs',    icon: HelpCircle },
+  { to: '/notes',       label: 'Journal',     icon: BookOpen },
+  { to: '/profile',     label: 'Our Profile', icon: User2 },
 ]
 
 export default function Sidebar() {

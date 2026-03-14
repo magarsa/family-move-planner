@@ -7,6 +7,8 @@ import Branches from './views/Branches'
 import Whatifs from './views/Whatifs'
 import Notes from './views/Notes'
 import Profile from './views/Profile'
+import Properties from './views/Properties'
+import Schools from './views/Schools'
 import { useUser } from './hooks/useUser'
 import { useTheme } from './hooks/useTheme'
 
@@ -27,6 +29,8 @@ export default function App() {
         <Route path="/whatifs" element={<Whatifs />} />
         <Route path="/notes" element={<Notes />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/properties" element={<Properties />} />
+        <Route path="/schools" element={<Schools />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckSquare, GitBranch, HelpCircle, BookOpen, AlertTriangle, ArrowRight, Zap } from 'lucide-react'
+import { CheckSquare, GitBranch, HelpCircle, BookOpen, AlertTriangle, ArrowRight, Zap, Home, GraduationCap, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type TodoRow = Tables<'todos'>
 type BranchRow = Tables<'branches'>
 type WhatIfRow = Tables<'whatifs'>
+type PropertyRow = Tables<'properties'>
+type SchoolRow = Tables<'schools'>
 
 import { useUser } from '../hooks/useUser'
 import ProgressRing from '../components/ProgressRing'
@@ -36,18 +38,30 @@ export default function Dashboard() {
   const [todos, setTodos] = useState<TodoRow[]>([])
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [whatifs, setWhatifs] = useState<WhatIfRow[]>([])
+  const [properties, setProperties] = useState<PropertyRow[]>([])
+  const [schools, setSchools] = useState<SchoolRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
-      const [{ data: todosData }, { data: branchesData }, { data: whatifsData }] = await Promise.all([
+      const [
+        { data: todosData },
+        { data: branchesData },
+        { data: whatifsData },
+        { data: propertiesData },
+        { data: schoolsData },
+      ] = await Promise.all([
         supabase.from('todos').select('*'),
         supabase.from('branches').select('*'),
         supabase.from('whatifs').select('*'),
+        supabase.from('properties').select('id, address, area, status, visit_at'),
+        supabase.from('schools').select('id, name, status'),
       ])
       setTodos(todosData || [])
       setBranches(branchesData || [])
       setWhatifs(whatifsData || [])
+      setProperties((propertiesData || []) as PropertyRow[])
+      setSchools((schoolsData || []) as SchoolRow[])
       setLoading(false)
     }
     load()
@@ -56,6 +70,8 @@ export default function Dashboard() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatifs' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schools' }, () => load())
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
@@ -104,6 +120,20 @@ export default function Dashboard() {
 
   // Active what-ifs (Monitoring or Triggered)
   const activeWhatifs = whatifs.filter(w => w.status === 'Monitoring' || w.status === 'Triggered')
+
+  // Upcoming property visits
+  const upcomingVisits = properties
+    .filter(p => p.visit_at && new Date(p.visit_at) > new Date())
+    .sort((a, b) => new Date(a.visit_at!).getTime() - new Date(b.visit_at!).getTime())
+    .slice(0, 3)
+
+  // School research summary
+  const schoolCounts = {
+    total: schools.length,
+    topChoice: schools.filter(s => s.status === 'Top Choice').length,
+    toured: schools.filter(s => s.status === 'Toured').length,
+    researching: schools.filter(s => s.status === 'Researching' || !s.status).length,
+  }
 
   const timeProgress = progressPercent()
   const daysLeft = daysUntil(TARGET_DATE)
@@ -334,6 +364,93 @@ export default function Dashboard() {
           )}
         </motion.div>
       </div>
+
+      {/* ── SECTION 4: Properties & Schools ── */}
+      {(properties.length > 0 || schools.length > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Upcoming visits */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="card p-5"
+          >
+            <h2 className="font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-2 mb-4">
+              <Calendar size={16} className="text-blue-500" /> Upcoming Visits
+            </h2>
+            {upcomingVisits.length === 0 ? (
+              <div className="text-sm text-stone-400 dark:text-stone-500 py-2">
+                No visits scheduled.{' '}
+                <Link to="/properties" className="text-teal-600 hover:underline">View properties →</Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {upcomingVisits.map(p => (
+                  <Link
+                    key={p.id}
+                    to="/properties"
+                    className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors group"
+                  >
+                    <Home size={14} className="text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-stone-800 dark:text-stone-200 truncate group-hover:text-blue-700 dark:group-hover:text-blue-400">
+                        {p.address}
+                      </div>
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                        {new Date(p.visit_at!).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    <ArrowRight size={14} className="text-stone-300 dark:text-stone-600 mt-0.5 flex-shrink-0" />
+                  </Link>
+                ))}
+                {properties.length > 3 && (
+                  <Link to="/properties" className="text-xs text-teal-600 dark:text-teal-400 hover:underline pl-2.5">
+                    View all {properties.length} properties →
+                  </Link>
+                )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* School research */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="card p-5"
+          >
+            <h2 className="font-semibold text-stone-800 dark:text-stone-200 flex items-center gap-2 mb-4">
+              <GraduationCap size={16} className="text-teal-500" /> School Research
+            </h2>
+            {schoolCounts.total === 0 ? (
+              <div className="text-sm text-stone-400 dark:text-stone-500 py-2">
+                No schools tracked yet.{' '}
+                <Link to="/schools" className="text-teal-600 hover:underline">Add schools →</Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center p-3 bg-teal-50 dark:bg-teal-900/20 rounded-xl">
+                    <div className="text-xl font-bold text-teal-700 dark:text-teal-400">{schoolCounts.topChoice}</div>
+                    <div className="text-xs text-teal-600 dark:text-teal-500 mt-0.5">Top Choice</div>
+                  </div>
+                  <div className="text-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                    <div className="text-xl font-bold text-amber-700 dark:text-amber-400">{schoolCounts.toured}</div>
+                    <div className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">Toured</div>
+                  </div>
+                  <div className="text-center p-3 bg-stone-50 dark:bg-stone-700/50 rounded-xl">
+                    <div className="text-xl font-bold text-stone-700 dark:text-stone-300">{schoolCounts.researching}</div>
+                    <div className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">Researching</div>
+                  </div>
+                </div>
+                <Link to="/schools" className="text-xs text-teal-600 dark:text-teal-400 hover:underline">
+                  View all {schoolCounts.total} school{schoolCounts.total !== 1 ? 's' : ''} →
+                </Link>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

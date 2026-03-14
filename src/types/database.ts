@@ -172,6 +172,170 @@ export type Database = {
         }
         Relationships: []
       }
+      properties: {
+        Row: {
+          id: string
+          address: string
+          area: string | null
+          status: string | null
+          price: number | null
+          beds: number | null
+          baths: number | null
+          sqft: number | null
+          zillow_url: string | null
+          notes: string | null
+          branch_id: string | null
+          visit_at: string | null
+          visit_notes: string | null
+          ai_analysis: Json | null
+          ai_analyzed_at: string | null
+          ai_analyzed_by: string | null
+          added_by: string | null
+          created_at: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          address: string
+          area?: string | null
+          status?: string | null
+          price?: number | null
+          beds?: number | null
+          baths?: number | null
+          sqft?: number | null
+          zillow_url?: string | null
+          notes?: string | null
+          branch_id?: string | null
+          visit_at?: string | null
+          visit_notes?: string | null
+          ai_analysis?: Json | null
+          ai_analyzed_at?: string | null
+          ai_analyzed_by?: string | null
+          added_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          address?: string
+          area?: string | null
+          status?: string | null
+          price?: number | null
+          beds?: number | null
+          baths?: number | null
+          sqft?: number | null
+          zillow_url?: string | null
+          notes?: string | null
+          branch_id?: string | null
+          visit_at?: string | null
+          visit_notes?: string | null
+          ai_analysis?: Json | null
+          ai_analyzed_at?: string | null
+          ai_analyzed_by?: string | null
+          added_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "properties_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          id: string
+          name: string
+          district: string | null
+          area: string | null
+          grades: string | null
+          school_type: string | null
+          greatschools_url: string | null
+          notes: string | null
+          status: string | null
+          ai_analysis: Json | null
+          ai_analyzed_at: string | null
+          ai_analyzed_by: string | null
+          added_by: string | null
+          created_at: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          district?: string | null
+          area?: string | null
+          grades?: string | null
+          school_type?: string | null
+          greatschools_url?: string | null
+          notes?: string | null
+          status?: string | null
+          ai_analysis?: Json | null
+          ai_analyzed_at?: string | null
+          ai_analyzed_by?: string | null
+          added_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          district?: string | null
+          area?: string | null
+          grades?: string | null
+          school_type?: string | null
+          greatschools_url?: string | null
+          notes?: string | null
+          status?: string | null
+          ai_analysis?: Json | null
+          ai_analyzed_at?: string | null
+          ai_analyzed_by?: string | null
+          added_by?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      property_schools: {
+        Row: {
+          property_id: string
+          school_id: string
+        }
+        Insert: {
+          property_id: string
+          school_id: string
+        }
+        Update: {
+          property_id?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_schools_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_schools_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

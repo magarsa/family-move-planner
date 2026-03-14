@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save, Home } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type BranchRow = Tables<'branches'>
+type PropertyRow = Tables<'properties'>
 
 interface BranchOption {
   label: string
@@ -35,6 +37,16 @@ function BranchCard({ branch, onUpdate }: BranchCardProps) {
   const [editNotes, setEditNotes] = useState(branch.notes || '')
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
+  const [linkedProperties, setLinkedProperties] = useState<PropertyRow[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    supabase
+      .from('properties')
+      .select('id, address, area, status, ai_analysis')
+      .eq('branch_id', branch.id)
+      .then(({ data }) => setLinkedProperties((data || []) as PropertyRow[]))
+  }, [open, branch.id])
 
   const status = branch.status as BranchStatus
   const style = STATUS_STYLES[status]
@@ -174,6 +186,29 @@ function BranchCard({ branch, onUpdate }: BranchCardProps) {
                   className="textarea-field"
                 />
               </div>
+
+              {/* Linked Properties */}
+              {linkedProperties.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    <Home size={11} /> Linked Properties
+                  </div>
+                  <div className="space-y-1.5">
+                    {linkedProperties.map(p => (
+                      <Link
+                        key={p.id}
+                        to="/properties"
+                        className="flex items-center gap-2 p-2 rounded-lg bg-stone-50 dark:bg-stone-700/50 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors text-sm"
+                      >
+                        <Home size={12} className="text-stone-400 flex-shrink-0" />
+                        <span className="flex-1 truncate text-stone-700 dark:text-stone-300">{p.address}</span>
+                        {p.area && <span className="text-xs text-stone-400">{p.area}</span>}
+                        <span className="text-xs text-stone-400">{p.status}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Save button */}
               {dirty && (
