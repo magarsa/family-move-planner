@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronUp, Check, Minus, Circle, GraduationCap, Loader2, Save, Trash2, Plus, X, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
@@ -33,13 +34,21 @@ const SCHOOL_TYPES = ['Public', 'Private', 'Charter', 'Magnet']
 interface SchoolCardProps {
   school: SchoolRow
   linkedPropertyCount: number
+  autoOpen?: boolean
   onUpdate: (id: string, patch: Partial<SchoolRow>) => void
   onDelete: (id: string) => void
 }
 
-function SchoolCard({ school, linkedPropertyCount, onUpdate, onDelete }: SchoolCardProps) {
+function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete }: SchoolCardProps) {
   const { userName } = useUser()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(autoOpen ?? false)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (autoOpen && cardRef.current) {
+      cardRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [])
   const [editNotes, setEditNotes] = useState(school.notes || '')
   const [editUrl, setEditUrl] = useState(school.greatschools_url || '')
   const [saving, setSaving] = useState(false)
@@ -78,7 +87,7 @@ function SchoolCard({ school, linkedPropertyCount, onUpdate, onDelete }: SchoolC
   }
 
   return (
-    <div className={`card overflow-hidden transition-shadow ${open ? 'shadow-md' : ''}`}>
+    <div ref={cardRef} className={`card overflow-hidden transition-shadow ${open ? 'shadow-md' : ''} ${autoOpen ? 'ring-2 ring-teal-400 ring-offset-2' : ''}`}>
       {/* Header row */}
       <button
         className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
@@ -332,6 +341,9 @@ export default function Schools() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [levelFilter, setLevelFilter] = useState<string>('All')
+  const [typeFilter, setTypeFilter] = useState<string>('All')
+  const [searchParams] = useSearchParams()
+  const openId = searchParams.get('open')
 
   async function fetchSchools() {
     const { data } = await supabase
@@ -372,11 +384,13 @@ export default function Schools() {
     setSchools(prev => [school, ...prev])
   }
 
-  const LEVEL_FILTERS = ['All', 'K-5', '6-8', '9-12']
+  const LEVEL_FILTERS = ['All', 'K-5', 'K-8', 'K-12', '6-8', '9-12']
+  const TYPE_FILTERS = ['All', 'Public', 'Charter', 'Private', 'Magnet']
 
-  const filtered = levelFilter === 'All'
-    ? schools
-    : schools.filter(s => s.grades === levelFilter)
+  const filtered = schools.filter(s =>
+    (levelFilter === 'All' || s.grades === levelFilter) &&
+    (typeFilter === 'All' || s.school_type === typeFilter)
+  )
 
   const counts = {
     Researching: schools.filter(s => s.status === 'Researching' || !s.status).length,
@@ -433,21 +447,38 @@ export default function Schools() {
           ))}
       </div>
 
-      {/* Level filter tabs */}
-      <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
-        {LEVEL_FILTERS.map(f => (
-          <button
-            key={f}
-            onClick={() => setLevelFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              levelFilter === f
-                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
-                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+      {/* Filters */}
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
+          {LEVEL_FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => setLevelFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                levelFilter === f
+                  ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
+          {TYPE_FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => setTypeFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                typeFilter === f
+                  ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* School list */}
@@ -464,6 +495,7 @@ export default function Schools() {
               key={school.id}
               school={school}
               linkedPropertyCount={linkedCounts[school.id] || 0}
+              autoOpen={school.id === openId}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
             />
