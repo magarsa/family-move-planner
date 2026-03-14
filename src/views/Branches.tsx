@@ -3,10 +3,19 @@ import type { ReactNode } from 'react'
 import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import type { BranchRow } from '../types/database'
+import type { Tables } from '../types/database'
+type BranchRow = Tables<'branches'>
+
+interface BranchOption {
+  label: string
+  pros: string[]
+  cons: string[]
+}
+
 import { useUser } from '../hooks/useUser'
 
 type BranchStatus = 'Open' | 'In Progress' | 'Decided'
+
 
 const STATUS_STYLES: Record<BranchStatus, { badge: string; icon: ReactNode; label: string }> = {
   'Open':        { badge: 'bg-stone-100 text-stone-500',    icon: <Circle size={12} />,  label: 'Open' },
@@ -101,11 +110,11 @@ function BranchCard({ branch, onUpdate }: BranchCardProps) {
               </div>
 
               {/* Options */}
-              {branch.options && branch.options.length > 0 && (
+              {branch.options && (branch.options as unknown as BranchOption[]).length > 0 && (
                 <div>
                   <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Options</div>
                   <div className="space-y-3">
-                    {branch.options.map((opt, i) => (
+                    {(branch.options as unknown as BranchOption[]).map((opt, i) => (
                       <div key={i} className="bg-stone-50 rounded-xl p-4">
                         <div className="font-medium text-stone-800 text-sm mb-2">{opt.label}</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

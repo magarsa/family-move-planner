@@ -15,7 +15,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = resolve(__dirname, '..')
 
 // Load .env manually (no dotenv dependency required)
-function loadEnv() {
+async function loadEnv() {
+  const { data, error } = await supabase.from('branches').select('*').limit(1)
+  console.log('data:', data)
+  console.log('error:', error)
   const envPath = resolve(rootDir, '.env')
   if (!existsSync(envPath)) {
     console.error('❌  .env file not found. Copy .env.example to .env and fill in your values.')

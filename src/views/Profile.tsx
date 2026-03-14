@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Pencil, Check, X, Loader2, User2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import type { ProfileRow } from '../types/database'
+import type { Tables } from '../types/database'
+type ProfileRow = Tables<'profile'>
+
 import { useUser } from '../hooks/useUser'
 
 const PROFILE_META: { key: string; label: string; hint?: string; multiline?: boolean }[] = [

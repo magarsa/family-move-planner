@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom'
 import { CheckSquare, GitBranch, HelpCircle, BookOpen, AlertTriangle, ArrowRight, Zap } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import type { TodoRow, BranchRow, WhatIfRow } from '../types/database'
+import type { Tables } from '../types/database'
+type TodoRow = Tables<'todos'>
+type BranchRow = Tables<'branches'>
+type WhatIfRow = Tables<'whatifs'>
+
 import { useUser } from '../hooks/useUser'
 import ProgressRing from '../components/ProgressRing'
 

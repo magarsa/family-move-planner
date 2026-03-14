@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Plus, Loader2, Save, Trash2, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import type { WhatIfRow } from '../types/database'
+import type { Tables } from '../types/database'
+type WhatIfRow = Tables<'whatifs'>
+
 import { useUser } from '../hooks/useUser'
 
 type WIStatus = 'Unplanned' | 'Monitoring' | 'Triggered' | 'Resolved'

@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Loader2, BookOpen, Send } from 'lucide-react'
+import { Loader2, BookOpen, Send } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import type { NoteRow } from '../types/database'
+import type { Tables } from '../types/database'
+type NoteRow = Tables<'notes'>
+
 import { useUser } from '../hooks/useUser'
 
 function formatDate(iso: string) {
@@ -16,7 +18,7 @@ function formatTime(iso: string) {
 
 function groupByDate(notes: NoteRow[]): Record<string, NoteRow[]> {
   return notes.reduce<Record<string, NoteRow[]>>((acc, note) => {
-    const day = new Date(note.created_at).toDateString()
+    const day = new Date(note.created_at ?? '').toDateString()
     if (!acc[day]) acc[day] = []
     acc[day].push(note)
     return acc
@@ -108,7 +110,7 @@ export default function Notes() {
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-px flex-1 bg-stone-200" />
                 <span className="text-xs font-medium text-stone-400 uppercase tracking-wide whitespace-nowrap">
-                  {formatDate(grouped[day][0].created_at)}
+                  {formatDate(grouped[day][0].created_at ?? '')}
                 </span>
                 <div className="h-px flex-1 bg-stone-200" />
               </div>
@@ -132,7 +134,7 @@ export default function Notes() {
                                 {note.author || 'Unknown'}
                               </span>
                             )}
-                            <span className="text-xs text-stone-400">{formatTime(note.created_at)}</span>
+                            <span className="text-xs text-stone-400">{formatTime(note.created_at ?? '')}</span>
                             {isMe && (
                               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorClass}`}>
                                 {note.author}

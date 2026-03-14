@@ -2,7 +2,8 @@ import { useEffect, useState, useRef } from 'react'
 import { Plus, Check, Trash2, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import type { TodoRow } from '../types/database'
+import type { Tables } from '../types/database'
+type TodoRow = Tables<'todos'>
 import { useUser } from '../hooks/useUser'
 
 type Tier = 'Do First' | 'Do Soon' | 'Do When Ready' | 'Later'
