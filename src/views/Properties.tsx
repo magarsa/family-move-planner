@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, Home, Loader2, Save, Trash2, Plus, X, ExternalLink, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, Save, Trash2, Plus, X, ExternalLink, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
@@ -10,6 +11,7 @@ import AiAnalysisPanel from '../components/AiAnalysisPanel'
 
 type PropertyRow = Tables<'properties'>
 type BranchRow = Tables<'branches'>
+type SchoolRow = Tables<'schools'>
 
 type PropertyStatus = 'Considering' | 'Visit Scheduled' | 'Visited' | 'Offer Made' | 'Ruled Out' | 'Secured'
 
@@ -42,12 +44,14 @@ function formatVisitDate(dt: string | null) {
 interface PropertyCardProps {
   property: PropertyRow
   branches: BranchRow[]
+  schools: SchoolRow[]
   onUpdate: (id: string, patch: Partial<PropertyRow>) => void
   onDelete: (id: string) => void
 }
 
-function PropertyCard({ property, branches, onUpdate, onDelete }: PropertyCardProps) {
+function PropertyCard({ property, branches, schools, onUpdate, onDelete }: PropertyCardProps) {
   const { userName } = useUser()
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [editNotes, setEditNotes] = useState(property.notes || '')
   const [editVisitNotes, setEditVisitNotes] = useState(property.visit_notes || '')
@@ -57,6 +61,8 @@ function PropertyCard({ property, branches, onUpdate, onDelete }: PropertyCardPr
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [linkedSchools, setLinkedSchools] = useState<SchoolRow[]>([])
+  const [schoolsLoaded, setSchoolsLoaded] = useState(false)
 
   const status = (property.status || 'Considering') as PropertyStatus
   const style = STATUS_STYLES[status]
@@ -110,6 +116,36 @@ function PropertyCard({ property, branches, onUpdate, onDelete }: PropertyCardPr
     onUpdate(property.id, patch)
     await supabase.from('properties').update(patch).eq('id', property.id)
   }
+
+  async function fetchLinkedSchools() {
+    const { data } = await supabase
+      .from('property_schools')
+      .select('school_id')
+      .eq('property_id', property.id)
+    if (data) {
+      const ids = data.map(r => r.school_id)
+      setLinkedSchools(schools.filter(s => ids.includes(s.id)))
+    }
+    setSchoolsLoaded(true)
+  }
+
+  async function linkSchool(schoolId: string) {
+    await supabase.from('property_schools').insert({ property_id: property.id, school_id: schoolId })
+    const school = schools.find(s => s.id === schoolId)
+    if (school) setLinkedSchools(prev => [...prev, school])
+  }
+
+  async function unlinkSchool(schoolId: string) {
+    await supabase.from('property_schools')
+      .delete()
+      .eq('property_id', property.id)
+      .eq('school_id', schoolId)
+    setLinkedSchools(prev => prev.filter(s => s.id !== schoolId))
+  }
+
+  useEffect(() => {
+    if (open && !schoolsLoaded) fetchLinkedSchools()
+  }, [open])
 
   async function handleDelete() {
     if (!confirm(`Remove "${property.address}" from your list?`)) return
@@ -273,6 +309,59 @@ function PropertyCard({ property, branches, onUpdate, onDelete }: PropertyCardPr
                 />
               </div>
 
+              {/* Nearby Schools */}
+              <div>
+                <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <GraduationCap size={12} /> Nearby Schools
+                </div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {linkedSchools.map(school => (
+                    <span
+                      key={school.id}
+                      className="inline-flex items-center gap-1.5 text-xs bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-lg"
+                    >
+                      <span>{school.name}</span>
+                      {school.school_type && (
+                        <span className="opacity-60">· {school.school_type}</span>
+                      )}
+                      <button
+                        onClick={() => navigate(`/schools?open=${school.id}`)}
+                        className="ml-0.5 hover:text-teal-500 transition-colors"
+                        title="View school record"
+                      >
+                        <ExternalLink size={10} />
+                      </button>
+                      <button
+                        onClick={() => unlinkSchool(school.id)}
+                        className="hover:text-red-400 transition-colors"
+                        title="Remove link"
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                  {linkedSchools.length === 0 && schoolsLoaded && (
+                    <span className="text-xs text-stone-400 dark:text-stone-500">No schools linked yet</span>
+                  )}
+                </div>
+                {schools.filter(s => !linkedSchools.find(l => l.id === s.id)).length > 0 && (
+                  <select
+                    value=""
+                    onChange={e => { if (e.target.value) linkSchool(e.target.value) }}
+                    className="input-field text-sm"
+                  >
+                    <option value="">+ Link a school…</option>
+                    {schools
+                      .filter(s => !linkedSchools.find(l => l.id === s.id))
+                      .map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}{s.school_type ? ` (${s.school_type})` : ''}{s.area ? ` — ${s.area}` : ''}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
+
               {/* Link to decision branch */}
               <div>
                 <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Link to Decision</div>
@@ -433,6 +522,7 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
 export default function Properties() {
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [branches, setBranches] = useState<BranchRow[]>([])
+  const [schools, setSchools] = useState<SchoolRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [statusFilter, setStatusFilter] = useState<PropertyStatus | 'All'>('All')
@@ -451,9 +541,18 @@ export default function Properties() {
     setBranches((data || []) as BranchRow[])
   }
 
+  async function fetchSchools() {
+    const { data } = await supabase
+      .from('schools')
+      .select('id, name, school_type, grades, area, district')
+      .order('name')
+    setSchools((data || []) as SchoolRow[])
+  }
+
   useEffect(() => {
     fetchProperties()
     fetchBranches()
+    fetchSchools()
     const ch = supabase.channel('properties-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, fetchProperties)
       .subscribe()
@@ -557,6 +656,7 @@ export default function Properties() {
               key={property.id}
               property={property}
               branches={branches}
+              schools={schools}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
             />
