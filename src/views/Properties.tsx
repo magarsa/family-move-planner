@@ -9,7 +9,7 @@ import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
 import { lookupProperty } from '../lib/lookupProperty'
-import type { ProximityData } from '../lib/lookupProperty'
+import type { ProximityData, NearbySchool } from '../lib/lookupProperty'
 
 type PropertyRow = Tables<'properties'>
 type BranchRow = Tables<'branches'>
@@ -66,6 +66,46 @@ function buildZillowUrl(property: PropertyRow): string {
   if (property.zillow_url) return property.zillow_url
   const slug = property.address.replace(/,/g, '').replace(/\s+/g, '-')
   return `https://www.zillow.com/homes/${encodeURIComponent(slug)}_rb/`
+}
+
+// ─── School upsert helper ─────────────────────────────────────────────────────
+
+async function upsertAndLinkSchools(propertyId: string, nearbySchools: NearbySchool[], area: string | null) {
+  for (const school of nearbySchools) {
+    try {
+      // Find existing school by name (case-insensitive exact match — no wildcards)
+      const { data: results } = await supabase
+        .from('schools')
+        .select('id')
+        .ilike('name', school.name)
+        .limit(1)
+
+      let schoolId: string
+      const existing = results?.[0] as { id: string } | undefined
+
+      if (existing?.id) {
+        schoolId = existing.id
+      } else {
+        const types = school.types || []
+        const { data: inserted } = await supabase
+          .from('schools')
+          .insert({
+            name: school.name,
+            school_type: 'Public',
+            grades: types.includes('primary_school') ? 'K-5' : types.includes('secondary_school') ? '9-12' : null,
+            area: area || null,
+            notes: school.vicinity || null,
+            status: 'Researching',
+          })
+          .select('id')
+          .single()
+        if (!inserted?.id) continue
+        schoolId = inserted.id
+      }
+
+      await supabase.from('property_schools').upsert({ property_id: propertyId, school_id: schoolId })
+    } catch { /* skip individual failures */ }
+  }
 }
 
 // ─── Area Snapshot ───────────────────────────────────────────────────────────
@@ -229,13 +269,20 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   }
 
   async function fetchLinkedSchools() {
-    const { data } = await supabase
+    const { data: links } = await supabase
       .from('property_schools')
       .select('school_id')
       .eq('property_id', property.id)
-    if (data) {
-      const ids = data.map(r => r.school_id)
-      setLinkedSchools(schools.filter(s => ids.includes(s.id)))
+    if (links && links.length > 0) {
+      const ids = links.map((r: { school_id: string }) => r.school_id)
+      const { data: schoolData } = await supabase
+        .from('schools')
+        .select('id, name, school_type, grades, area, district')
+        .in('id', ids)
+        .order('name')
+      setLinkedSchools((schoolData || []) as SchoolRow[])
+    } else {
+      setLinkedSchools([])
     }
     setSchoolsLoaded(true)
   }
@@ -275,6 +322,12 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
           .update({ proximity: result.proximity as unknown as Json })
           .eq('id', property.id)
         onUpdate(property.id, { proximity: result.proximity as unknown as typeof property.proximity })
+        // Link schools that came back with the snapshot
+        if (result.proximity.schools.length > 0) {
+          await upsertAndLinkSchools(property.id, result.proximity.schools, property.area || null)
+          // Re-fetch linked schools so the UI reflects the new links
+          await fetchLinkedSchools()
+        }
       }
     } catch (err) {
       console.error('Failed to load area snapshot', err)
@@ -642,9 +695,9 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
     }).select().single()
     if (error) { setErr(error.message); setSubmitting(false); return }
 
-    // If proximity includes nearby schools, link them now that we have the property ID
-    if (pendingProximity && data?.id && pendingProximity.schools.length > 0) {
-      await lookupProperty(address.trim(), data.id).catch(() => { /* non-blocking */ })
+    // Link nearby schools directly — no need for a second API call
+    if (pendingProximity?.schools.length && data?.id) {
+      await upsertAndLinkSchools(data.id, pendingProximity.schools, area || null)
     }
 
     onAdd(data as PropertyRow)
