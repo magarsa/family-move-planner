@@ -34,6 +34,7 @@ const NOTE_TYPE_STYLES: Record<NoteType, string> = {
 
 const ROLE_OPTIONS = [
   'Real Estate Agent',
+  'Listing Agent',
   'Mortgage Lender',
   'Home Inspector',
   'Contractor',

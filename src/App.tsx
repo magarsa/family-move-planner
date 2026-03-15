@@ -10,6 +10,7 @@ import Profile from './views/Profile'
 import Properties from './views/Properties'
 import Schools from './views/Schools'
 import Contacts from './views/Contacts'
+import Selling from './views/Selling'
 import { useUser } from './hooks/useUser'
 import { useTheme } from './hooks/useTheme'
 
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/properties" element={<Properties />} />
         <Route path="/schools" element={<Schools />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/selling" element={<Selling />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

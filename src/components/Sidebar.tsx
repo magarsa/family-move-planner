@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CheckSquare, GitBranch, HelpCircle,
-  BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap, Users, ChevronDown,
+  BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap, Users, ChevronDown, TrendingDown,
 } from 'lucide-react'
 import { useUser } from '../hooks/useUser'
 import { useTheme } from '../hooks/useTheme'
@@ -25,6 +25,7 @@ const navGroups = [
       { to: '/properties', label: 'Properties', icon: Home },
       { to: '/schools',    label: 'Schools',    icon: GraduationCap },
       { to: '/contacts',   label: 'Contacts',   icon: Users },
+      { to: '/selling',    label: 'Selling',    icon: TrendingDown },
     ],
   },
   {
