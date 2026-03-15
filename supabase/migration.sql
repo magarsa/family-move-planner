@@ -288,3 +288,10 @@ do $$ begin
   alter publication supabase_realtime add table contact_notes;
 exception when duplicate_object then null;
 end $$;
+
+-- ============================================================
+-- Migration 004: Property proximity snapshot
+-- ============================================================
+
+-- Cached proximity/area data for each property (populated by lookup-property edge function)
+alter table properties add column if not exists proximity jsonb;
