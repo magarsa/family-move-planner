@@ -124,7 +124,10 @@ async function fetchPlaces(
   const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&type=${placeType}&key=${apiKey}`
   const res = await fetch(url)
   if (!res.ok) return []
-  const data = await res.json() as { results?: PlacesResult[] }
+  const data = await res.json() as { results?: PlacesResult[]; status?: string; error_message?: string }
+  if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+    console.error('[lookup-property] Places API error:', data.status, data.error_message || '', 'type:', placeType)
+  }
   return data.results || []
 }
 
