@@ -8,19 +8,19 @@ type ProfileRow = Tables<'profile'>
 import { useUser } from '../hooks/useUser'
 
 const PROFILE_META: { key: string; label: string; hint?: string; multiline?: boolean }[] = [
-  { key: 'current_home',           label: 'Current Home' },
-  { key: 'destination',            label: 'Destination' },
-  { key: 'timeline',               label: 'Target Timeline' },
-  { key: 'move_drivers',           label: 'Move Drivers',          hint: 'Why are you moving?', multiline: true },
-  { key: 'kids',                   label: 'Kids' },
-  { key: 'kids_grades',            label: "Kids' Grades / Schools", hint: 'e.g. 3rd grade, 7th grade' },
-  { key: 'charlotte_housing_plan', label: 'Charlotte Housing Plan', hint: 'Buy, rent, etc.' },
-  { key: 'employment',             label: 'Employment Situation',   hint: 'Who is job-searching?', multiline: true },
-  { key: 'des_moines_sale_price',  label: 'Des Moines Sale Price Estimate' },
-  { key: 'mortgage_balance',       label: 'Remaining Mortgage Balance' },
-  { key: 'equity_to_deploy',       label: 'Expected Equity to Deploy' },
-  { key: 'charlotte_budget',       label: 'Charlotte Home Budget' },
-  { key: 'target_suburbs',         label: 'Target Charlotte Suburb(s)', hint: 'e.g. Waxhaw, Ballantyne', multiline: true },
+  { key: 'current_home',              label: 'Current Home' },
+  { key: 'destination',               label: 'Destination(s)',               hint: 'e.g. Charlotte NC, Greenville SC, Raleigh NC' },
+  { key: 'timeline',                  label: 'Target Timeline' },
+  { key: 'move_drivers',              label: 'Move Drivers',                  hint: 'Why are you moving?', multiline: true },
+  { key: 'kids',                      label: 'Kids' },
+  { key: 'kids_grades',               label: "Kids' Grades / Schools",        hint: 'e.g. 3rd grade, 7th grade' },
+  { key: 'destination_housing_plan',  label: 'Destination Housing Plan',      hint: 'Buy, rent, etc.' },
+  { key: 'employment',                label: 'Employment Situation',           hint: 'Who is job-searching?', multiline: true },
+  { key: 'origin_sale_price',         label: 'Current Home Sale Price Est.' },
+  { key: 'mortgage_balance',          label: 'Remaining Mortgage Balance' },
+  { key: 'equity_to_deploy',          label: 'Expected Equity to Deploy' },
+  { key: 'destination_budget',        label: 'Home Budget' },
+  { key: 'target_suburbs',            label: 'Target Suburb(s)',               hint: 'e.g. Fort Mill SC, Cary NC, Simpsonville SC', multiline: true },
 ]
 
 interface RowProps {

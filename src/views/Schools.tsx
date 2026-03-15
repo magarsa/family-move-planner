@@ -21,10 +21,30 @@ const STATUS_STYLES: Record<SchoolStatus, { badge: string; icon: ReactNode; labe
   'Ruled Out':   { badge: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',         icon: <X size={12} />,      label: 'Ruled Out' },
 }
 
+const METRO_AREAS: Record<string, string[]> = {
+  Charlotte: [
+    'Fort Mill, SC', 'Tega Cay, SC', 'Clover, SC', 'Lake Wylie, SC', 'Indian Land, SC',
+    'Waxhaw, NC', 'Huntersville, NC', 'Concord, NC', 'Monroe, NC', 'Mooresville, NC',
+  ],
+  'Greenville SC': [
+    'Greenville, SC', 'Simpsonville, SC', 'Mauldin, SC', 'Greer, SC',
+    'Taylors, SC', 'Fountain Inn, SC', 'Powdersville, SC',
+  ],
+  'Raleigh NC': [
+    'Raleigh, NC', 'Cary, NC', 'Apex, NC', 'Morrisville, NC', 'Wake Forest, NC',
+    'Holly Springs, NC', 'Fuquay-Varina, NC', 'Durham, NC', 'Chapel Hill, NC',
+  ],
+}
+
 const AREA_OPTIONS = [
-  'Fort Mill, SC', 'Tega Cay, SC', 'Clover, SC', 'Lake Wylie, SC', 'Indian Land, SC',
-  'Mooresville, NC', 'Huntersville, NC', 'Concord, NC', 'Monroe, NC', 'Waxhaw, NC', 'Other',
+  ...METRO_AREAS['Charlotte'],
+  ...METRO_AREAS['Greenville SC'],
+  ...METRO_AREAS['Raleigh NC'],
+  'Other',
 ]
+
+const METRO_FILTERS = ['All', 'Charlotte', 'Greenville SC', 'Raleigh NC'] as const
+type MetroFilter = typeof METRO_FILTERS[number]
 
 const GRADE_LEVELS: SchoolLevel[] = ['K-5', '6-8', '9-12', 'K-8', 'K-12', 'Other']
 const SCHOOL_TYPES = ['Public', 'Private', 'Charter', 'Magnet']
@@ -342,6 +362,7 @@ export default function Schools() {
   const [showAdd, setShowAdd] = useState(false)
   const [levelFilter, setLevelFilter] = useState<string>('All')
   const [typeFilter, setTypeFilter] = useState<string>('All')
+  const [metroFilter, setMetroFilter] = useState<MetroFilter>('All')
   const [searchParams] = useSearchParams()
   const openId = searchParams.get('open')
 
@@ -389,7 +410,8 @@ export default function Schools() {
 
   const filtered = schools.filter(s =>
     (levelFilter === 'All' || s.grades === levelFilter) &&
-    (typeFilter === 'All' || s.school_type === typeFilter)
+    (typeFilter === 'All' || s.school_type === typeFilter) &&
+    (metroFilter === 'All' || METRO_AREAS[metroFilter]?.includes(s.area || ''))
   )
 
   const counts = {
@@ -416,6 +438,7 @@ export default function Schools() {
             <GraduationCap size={22} className="text-teal-600" /> Schools
           </h1>
           <p className="text-stone-500 dark:text-stone-400 mt-1">Research schools in your target areas.</p>
+
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary">
           <Plus size={14} /> Add School
@@ -449,6 +472,21 @@ export default function Schools() {
 
       {/* Filters */}
       <div className="flex flex-col gap-2">
+        <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
+          {METRO_FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => setMetroFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                metroFilter === f
+                  ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
           {LEVEL_FILTERS.map(f => (
             <button

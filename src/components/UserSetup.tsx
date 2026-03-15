@@ -26,7 +26,7 @@ export default function UserSetup({ onSelect }: Props) {
             Move Planner
           </h1>
           <p className="text-stone-500 text-base leading-relaxed">
-            Des Moines → Charlotte
+            Your family relocation command center
           </p>
           <div className="mt-3 h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
         </div>

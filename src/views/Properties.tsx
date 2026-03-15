@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, Save, Trash2, Plus, X, ExternalLink, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Trash2, Plus, X, ExternalLink, Calendar } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Tables } from '../types/database'
+import type { Tables, Json } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
+import { lookupProperty } from '../lib/lookupProperty'
+import type { ProximityData } from '../lib/lookupProperty'
 
 type PropertyRow = Tables<'properties'>
 type BranchRow = Tables<'branches'>
@@ -24,10 +26,31 @@ const STATUS_STYLES: Record<PropertyStatus, { badge: string; icon: ReactNode; la
   'Secured':         { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',     icon: <Check size={12} />,    label: 'Secured' },
 }
 
+// Metro area groupings for filtering
+const METRO_AREAS: Record<string, string[]> = {
+  Charlotte: [
+    'Fort Mill, SC', 'Tega Cay, SC', 'Clover, SC', 'Lake Wylie, SC', 'Indian Land, SC',
+    'Waxhaw, NC', 'Huntersville, NC', 'Concord, NC', 'Monroe, NC', 'Mooresville, NC',
+  ],
+  'Greenville SC': [
+    'Greenville, SC', 'Simpsonville, SC', 'Mauldin, SC', 'Greer, SC',
+    'Taylors, SC', 'Fountain Inn, SC', 'Powdersville, SC',
+  ],
+  'Raleigh NC': [
+    'Raleigh, NC', 'Cary, NC', 'Apex, NC', 'Morrisville, NC', 'Wake Forest, NC',
+    'Holly Springs, NC', 'Fuquay-Varina, NC', 'Durham, NC', 'Chapel Hill, NC',
+  ],
+}
+
 const AREA_OPTIONS = [
-  'Fort Mill, SC', 'Tega Cay, SC', 'Clover, SC', 'Lake Wylie, SC', 'Indian Land, SC',
-  'Mooresville, NC', 'Huntersville, NC', 'Concord, NC', 'Monroe, NC', 'Waxhaw, NC', 'Other',
+  ...METRO_AREAS['Charlotte'],
+  ...METRO_AREAS['Greenville SC'],
+  ...METRO_AREAS['Raleigh NC'],
+  'Other',
 ]
+
+const METRO_FILTERS = ['All', 'Charlotte', 'Greenville SC', 'Raleigh NC'] as const
+type MetroFilter = typeof METRO_FILTERS[number]
 
 function formatPrice(price: number | null) {
   if (!price) return null
@@ -37,6 +60,89 @@ function formatPrice(price: number | null) {
 function formatVisitDate(dt: string | null) {
   if (!dt) return null
   return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
+// ─── Area Snapshot ───────────────────────────────────────────────────────────
+
+function walkScoreColor(score: number) {
+  if (score >= 70) return 'text-green-600 dark:text-green-400'
+  if (score >= 50) return 'text-amber-600 dark:text-amber-400'
+  return 'text-stone-500 dark:text-stone-400'
+}
+
+function AreaSnapshot({ proximity }: { proximity: ProximityData }) {
+  const rows: { icon: string; label: string; content: string }[] = []
+
+  if (proximity.grocery.length > 0) {
+    rows.push({ icon: '🛒', label: 'Grocery', content: proximity.grocery.map(p => `${p.name} ${p.distanceMi}mi`).join(' · ') })
+  }
+  if (proximity.pharmacy.length > 0) {
+    rows.push({ icon: '💊', label: 'Pharmacy', content: proximity.pharmacy.map(p => `${p.name} ${p.distanceMi}mi`).join(' · ') })
+  }
+  if (proximity.parks.length > 0) {
+    rows.push({ icon: '🌳', label: 'Parks', content: proximity.parks.map(p => `${p.name} ${p.distanceMi}mi`).join(' · ') })
+  }
+  if (proximity.dining.length > 0) {
+    rows.push({ icon: '🍽', label: 'Dining', content: `${proximity.dining.length > 1 ? 'Multiple options' : proximity.dining[0].name} within ${proximity.dining[0].distanceMi}mi` })
+  }
+  if (proximity.shopping.length > 0) {
+    rows.push({ icon: '🛍', label: 'Shopping', content: proximity.shopping.map(p => `${p.name} ${p.distanceMi}mi`).join(' · ') })
+  }
+
+  return (
+    <div className="space-y-2">
+      {rows.map(r => (
+        <div key={r.label} className="flex gap-2 text-xs">
+          <span className="flex-shrink-0 w-20 text-stone-500 dark:text-stone-400 flex items-center gap-1">
+            {r.icon} {r.label}
+          </span>
+          <span className="text-stone-700 dark:text-stone-300 leading-relaxed">{r.content}</span>
+        </div>
+      ))}
+
+      {proximity.walkScore && (
+        <div className="flex gap-2 text-xs">
+          <span className="flex-shrink-0 w-20 text-stone-500 dark:text-stone-400 flex items-center gap-1">
+            🚶 Walk
+          </span>
+          <span className="flex items-center gap-2">
+            <span className={`font-semibold ${walkScoreColor(proximity.walkScore.walk)}`}>{proximity.walkScore.walk}</span>
+            {proximity.walkScore.bike > 0 && <span className={`font-semibold ${walkScoreColor(proximity.walkScore.bike)}`}>🚲 {proximity.walkScore.bike}</span>}
+            <span className="text-stone-500 dark:text-stone-400">{proximity.walkScore.description}</span>
+          </span>
+        </div>
+      )}
+
+      {proximity.floodZone && (
+        <div className="flex gap-2 text-xs">
+          <span className="flex-shrink-0 w-20 text-stone-500 dark:text-stone-400 flex items-center gap-1">
+            🌊 Flood
+          </span>
+          <span className={`${proximity.floodZone.zone === 'X' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+            Zone {proximity.floodZone.zone} — {proximity.floodZone.description}
+          </span>
+        </div>
+      )}
+
+      {proximity.hazards.length > 0 ? (
+        <div className="flex gap-2 text-xs">
+          <span className="flex-shrink-0 w-20 text-stone-500 dark:text-stone-400 flex items-center gap-1">
+            ⚠️ Hazards
+          </span>
+          <span className="text-amber-700 dark:text-amber-400">
+            {proximity.hazards.map(h => `${h.name} (${h.distanceMi}mi)`).join(' · ')}
+          </span>
+        </div>
+      ) : (
+        <div className="flex gap-2 text-xs">
+          <span className="flex-shrink-0 w-20 text-stone-500 dark:text-stone-400 flex items-center gap-1">
+            ⚠️ Hazards
+          </span>
+          <span className="text-green-600 dark:text-green-400">None within 1 mile</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── PropertyCard ────────────────────────────────────────────────────────────
@@ -382,6 +488,20 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                 )}
               </div>
 
+              {/* Area Snapshot */}
+              <div>
+                <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <MapPin size={12} /> Area Snapshot
+                </div>
+                {property.proximity ? (
+                  <AreaSnapshot proximity={property.proximity as unknown as ProximityData} />
+                ) : (
+                  <p className="text-xs text-stone-400 dark:text-stone-500">
+                    Use "Autofill from listing" when adding a property to load the area snapshot.
+                  </p>
+                )}
+              </div>
+
               {/* AI Analysis Panel */}
               <AiAnalysisPanel
                 entityType="property"
@@ -430,8 +550,49 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
   const [beds, setBeds] = useState('')
   const [baths, setBaths] = useState('')
   const [sqft, setSqft] = useState('')
+  const [notes, setNotes] = useState('')
+  const [zillowUrl, setZillowUrl] = useState('')
+  const [pendingProximity, setPendingProximity] = useState<ProximityData | null>(null)
+  const [autofilling, setAutofilling] = useState(false)
+  const [autofillErr, setAutofillErr] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState('')
+
+  // Detect Zillow URL paste and extract address from URL
+  function handleAddressChange(value: string) {
+    setAddress(value)
+    setErr('')
+    setAutofillErr('')
+    // If user pastes a Zillow URL, extract address slug and normalize it
+    if (value.includes('zillow.com')) {
+      const match = value.match(/zillow\.com\/homedetails\/([^/]+)/)
+      if (match) {
+        const slug = decodeURIComponent(match[1]).replace(/-\d+_zpid$/, '').replace(/-/g, ' ')
+        setAddress(slug)
+      }
+    }
+  }
+
+  async function autofill() {
+    if (!address.trim()) return
+    setAutofilling(true)
+    setAutofillErr('')
+    try {
+      const result = await lookupProperty(address.trim())
+      const { autofill: af, proximity } = result
+      if (af.beds != null) setBeds(String(af.beds))
+      if (af.baths != null) setBaths(String(af.baths))
+      if (af.sqft != null) setSqft(String(af.sqft))
+      if (af.price != null) setPrice(String(af.price))
+      if (af.area) setArea(af.area)
+      if (af.zillow_url) setZillowUrl(af.zillow_url)
+      if (af.notes_prefix) setNotes(af.notes_prefix)
+      if (proximity) setPendingProximity(proximity)
+    } catch (e) {
+      setAutofillErr(e instanceof Error ? e.message : 'Lookup failed — fill fields manually')
+    }
+    setAutofilling(false)
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -444,14 +605,25 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
       beds: beds ? parseInt(beds) : null,
       baths: baths ? parseFloat(baths) : null,
       sqft: sqft ? parseInt(sqft.replace(/\D/g, '')) : null,
+      zillow_url: zillowUrl || null,
+      notes: notes || null,
+      proximity: pendingProximity as unknown as Json,
       status: 'Considering',
       added_by: userName,
       updated_by: userName,
     }).select().single()
     if (error) { setErr(error.message); setSubmitting(false); return }
+
+    // If proximity includes nearby schools, link them now that we have the property ID
+    if (pendingProximity && data?.id && pendingProximity.schools.length > 0) {
+      await lookupProperty(address.trim(), data.id).catch(() => { /* non-blocking */ })
+    }
+
     onAdd(data as PropertyRow)
     onClose()
   }
+
+  const showAutofill = address.trim().length >= 15
 
   return (
     <form onSubmit={submit} className="card p-5 space-y-4">
@@ -465,13 +637,36 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
       <div className="space-y-3">
         <div>
           <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Address *</label>
-          <input
-            autoFocus
-            value={address}
-            onChange={e => { setAddress(e.target.value); setErr('') }}
-            placeholder="123 Gold Hill Rd, Fort Mill, SC 29708"
-            className="input-field mt-1"
-          />
+          <div className="flex gap-2 mt-1">
+            <input
+              autoFocus
+              value={address}
+              onChange={e => handleAddressChange(e.target.value)}
+              placeholder="123 Gold Hill Rd, Fort Mill, SC 29708 — or paste a Zillow URL"
+              className="input-field flex-1"
+            />
+            {showAutofill && (
+              <button
+                type="button"
+                onClick={autofill}
+                disabled={autofilling}
+                className="btn-primary flex-shrink-0 text-sm py-1.5"
+                title="Auto-fill from listing data"
+              >
+                {autofilling
+                  ? <Loader2 size={13} className="animate-spin" />
+                  : <Sparkles size={13} />
+                }
+                {autofilling ? 'Looking up…' : 'Autofill'}
+              </button>
+            )}
+          </div>
+          {autofillErr && <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">{autofillErr}</p>}
+          {pendingProximity && !autofillErr && (
+            <p className="text-xs text-teal-600 dark:text-teal-400 mt-1 flex items-center gap-1">
+              <ShoppingCart size={10} /> Area snapshot + {pendingProximity.schools.length} nearby schools ready
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -526,6 +721,7 @@ export default function Properties() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [statusFilter, setStatusFilter] = useState<PropertyStatus | 'All'>('All')
+  const [metroFilter, setMetroFilter] = useState<MetroFilter>('All')
 
   async function fetchProperties() {
     const { data } = await supabase
@@ -571,9 +767,10 @@ export default function Properties() {
     setProperties(prev => [property, ...prev])
   }
 
-  const filtered = statusFilter === 'All'
-    ? properties
-    : properties.filter(p => p.status === statusFilter)
+  const filtered = properties.filter(p =>
+    (statusFilter === 'All' || p.status === statusFilter) &&
+    (metroFilter === 'All' || METRO_AREAS[metroFilter]?.includes(p.area || ''))
+  )
 
   const counts = {
     Considering: properties.filter(p => p.status === 'Considering' || !p.status).length,
@@ -600,7 +797,7 @@ export default function Properties() {
           <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
             <Home size={22} className="text-teal-600" /> Properties
           </h1>
-          <p className="text-stone-500 dark:text-stone-400 mt-1">Track houses you're considering in the Charlotte area.</p>
+          <p className="text-stone-500 dark:text-stone-400 mt-1">Track houses you're considering.</p>
         </div>
         <button onClick={() => setShowAdd(true)} className="btn-primary">
           <Plus size={14} /> Add Property
@@ -620,6 +817,23 @@ export default function Properties() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Metro filter */}
+      <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
+        {METRO_FILTERS.map(f => (
+          <button
+            key={f}
+            onClick={() => setMetroFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              metroFilter === f
+                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
 
       {/* Status summary chips + filter */}
       <div className="flex gap-2 flex-wrap">

@@ -82,7 +82,7 @@ export default function Sidebar() {
             <div className="font-serif font-semibold text-stone-900 dark:text-stone-100 leading-tight">
               Move Planner
             </div>
-            <div className="text-xs text-stone-400 dark:text-stone-500">Des Moines → Charlotte</div>
+            <div className="text-xs text-stone-400 dark:text-stone-500">Relocation Planner</div>
           </div>
         </div>
       </div>
