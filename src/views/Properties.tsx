@@ -865,6 +865,16 @@ export default function Properties() {
   const [showAdd, setShowAdd] = useState(false)
   const [statusFilter, setStatusFilter] = useState<PropertyStatus | 'All'>('All')
   const [metroFilter, setMetroFilter] = useState<MetroFilter>('All')
+  const [suburbFilter, setSuburbFilter] = useState('')
+
+  function handleMetroChange(f: MetroFilter) {
+    setMetroFilter(f)
+    setSuburbFilter('') // reset suburb when switching metro
+  }
+
+  const availableSuburbs = metroFilter === 'All'
+    ? Object.values(METRO_AREAS).flat()
+    : METRO_AREAS[metroFilter] ?? []
 
   async function fetchProperties() {
     const { data } = await supabase
@@ -912,7 +922,8 @@ export default function Properties() {
 
   const filtered = properties.filter(p =>
     (statusFilter === 'All' || p.status === statusFilter) &&
-    (metroFilter === 'All' || METRO_AREAS[metroFilter]?.includes(p.area || ''))
+    (metroFilter === 'All' || METRO_AREAS[metroFilter]?.includes(p.area || '')) &&
+    (suburbFilter === '' || p.area === suburbFilter)
   )
 
   const counts = {
@@ -961,21 +972,31 @@ export default function Properties() {
         )}
       </AnimatePresence>
 
-      {/* Metro filter */}
-      <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
-        {METRO_FILTERS.map(f => (
-          <button
-            key={f}
-            onClick={() => setMetroFilter(f)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-              metroFilter === f
-                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
-                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+      {/* Metro + suburb filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
+          {METRO_FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={() => handleMetroChange(f)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                metroFilter === f
+                  ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <select
+          value={suburbFilter}
+          onChange={e => setSuburbFilter(e.target.value)}
+          className="input-field text-sm w-auto"
+        >
+          <option value="">All suburbs</option>
+          {availableSuburbs.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
       </div>
 
       {/* Status summary chips + filter */}
