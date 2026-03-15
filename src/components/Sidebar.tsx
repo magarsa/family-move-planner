@@ -15,7 +15,7 @@ const navGroups = [
     items: [
       { to: '/todos',    label: 'To-Do List', icon: CheckSquare },
       { to: '/branches', label: 'Decisions',  icon: GitBranch },
-      { to: '/whatifs',  label: 'What-Ifs',   icon: HelpCircle },
+      { to: '/whatifs',  label: 'Contingencies', icon: HelpCircle },
     ],
   },
   {

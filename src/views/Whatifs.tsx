@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Plus, Loader2, Save, Trash2, HelpCircle } from 'lucide-react'
+import { Plus, Loader2, Save, Trash2, AlertTriangle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type WhatIfRow = Tables<'whatifs'>
+type BranchRow = Tables<'branches'>
 
 import { useUser } from '../hooks/useUser'
 
@@ -20,11 +21,12 @@ const STATUSES: WIStatus[] = ['Unplanned', 'Monitoring', 'Triggered', 'Resolved'
 
 interface CardProps {
   item: WhatIfRow
+  branches: BranchRow[]
   onUpdate: (id: string, patch: Partial<WhatIfRow>) => void
   onDelete: (id: string) => void
 }
 
-function WhatIfCard({ item, onUpdate, onDelete }: CardProps) {
+function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
   const { userName } = useUser()
   const [editNotes, setEditNotes] = useState(item.notes || '')
   const [dirty, setDirty] = useState(false)
@@ -33,6 +35,12 @@ function WhatIfCard({ item, onUpdate, onDelete }: CardProps) {
 
   async function setStatus(s: WIStatus) {
     const patch = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
+    onUpdate(item.id, patch)
+    await supabase.from('whatifs').update(patch).eq('id', item.id)
+  }
+
+  async function setBranch(branchTitle: string) {
+    const patch = { branch: branchTitle || null, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(item.id, patch)
     await supabase.from('whatifs').update(patch).eq('id', item.id)
   }
@@ -66,11 +74,19 @@ function WhatIfCard({ item, onUpdate, onDelete }: CardProps) {
         </button>
       </div>
 
-      {item.branch && (
-        <div className="text-xs text-stone-400 pl-4.5 ml-0.5">
-          Branch: <span className="text-stone-600">{item.branch}</span>
-        </div>
-      )}
+      {/* Linked decision dropdown */}
+      <div className="pl-4">
+        <select
+          value={item.branch || ''}
+          onChange={e => setBranch(e.target.value)}
+          className="input-field text-xs py-1.5"
+        >
+          <option value="">— No linked decision —</option>
+          {branches.map(b => (
+            <option key={b.id} value={b.title}>{b.title}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Status pills */}
       <div className="flex gap-1.5 flex-wrap pl-4">
@@ -110,11 +126,12 @@ function WhatIfCard({ item, onUpdate, onDelete }: CardProps) {
 }
 
 interface AddFormProps {
+  branches: BranchRow[]
   onAdd: (scenario: string, branch: string) => Promise<void>
   onCancel: () => void
 }
 
-function AddForm({ onAdd, onCancel }: AddFormProps) {
+function AddContingencyForm({ branches, onAdd, onCancel }: AddFormProps) {
   const [scenario, setScenario] = useState('')
   const [branch, setBranch] = useState('')
   const [saving, setSaving] = useState(false)
@@ -122,7 +139,7 @@ function AddForm({ onAdd, onCancel }: AddFormProps) {
   async function submit() {
     if (!scenario.trim()) return
     setSaving(true)
-    await onAdd(scenario.trim(), branch.trim())
+    await onAdd(scenario.trim(), branch)
     setSaving(false)
   }
 
@@ -133,28 +150,31 @@ function AddForm({ onAdd, onCancel }: AddFormProps) {
       exit={{ opacity: 0, y: -8 }}
       className="card p-4 space-y-3 border-2 border-teal-200"
     >
-      <div className="text-sm font-semibold text-stone-700">New What-If Scenario</div>
+      <div className="text-sm font-semibold text-stone-700">New Contingency</div>
       <input
         autoFocus
         type="text"
         value={scenario}
         onChange={e => setScenario(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onCancel() }}
-        placeholder="What if… (e.g. Des Moines home sells in under 30 days)"
+        placeholder="Describe the scenario (e.g. Current home sells before we find a new one)"
         className="input-field"
       />
-      <input
-        type="text"
+      <select
         value={branch}
         onChange={e => setBranch(e.target.value)}
-        placeholder="Related branch (optional)"
         className="input-field"
-      />
+      >
+        <option value="">— No linked decision —</option>
+        {branches.map(b => (
+          <option key={b.id} value={b.title}>{b.title}</option>
+        ))}
+      </select>
       <div className="flex gap-2 justify-end">
         <button onClick={onCancel} className="btn-ghost">Cancel</button>
         <button onClick={submit} disabled={saving || !scenario.trim()} className="btn-primary">
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-          Add Scenario
+          Add Contingency
         </button>
       </div>
     </motion.div>
@@ -164,12 +184,17 @@ function AddForm({ onAdd, onCancel }: AddFormProps) {
 export default function Whatifs() {
   const { userName } = useUser()
   const [items, setItems] = useState<WhatIfRow[]>([])
+  const [branches, setBranches] = useState<BranchRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
 
   async function fetchItems() {
-    const { data } = await supabase.from('whatifs').select('*').order('updated_at', { ascending: false })
-    setItems(data || [])
+    const [{ data: wiData }, { data: branchData }] = await Promise.all([
+      supabase.from('whatifs').select('*').order('updated_at', { ascending: false }),
+      supabase.from('branches').select('*').order('sort_order', { ascending: true }),
+    ])
+    setItems(wiData || [])
+    setBranches(branchData || [])
     setLoading(false)
   }
 
@@ -222,8 +247,8 @@ export default function Whatifs() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-stone-900">What-If Scenarios</h1>
-          <p className="text-stone-500 mt-1">Plan for the unexpected before it happens.</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">Contingencies</h1>
+          <p className="text-stone-500 mt-1">Scenarios that could affect your decisions.</p>
         </div>
         <div className="flex items-center gap-3">
           {counts.Triggered > 0 && (
@@ -237,28 +262,28 @@ export default function Whatifs() {
             </span>
           )}
           <button onClick={() => setShowAdd(true)} className="btn-primary">
-            <Plus size={15} /> Add Scenario
+            <Plus size={15} /> Add Contingency
           </button>
         </div>
       </div>
 
       <AnimatePresence>
         {showAdd && (
-          <AddForm onAdd={handleAdd} onCancel={() => setShowAdd(false)} />
+          <AddContingencyForm branches={branches} onAdd={handleAdd} onCancel={() => setShowAdd(false)} />
         )}
       </AnimatePresence>
 
       {items.length === 0 ? (
         <div className="card p-12 text-center">
-          <HelpCircle size={32} className="mx-auto text-stone-300 mb-3" />
-          <p className="text-stone-500 font-medium">No scenarios yet</p>
-          <p className="text-stone-400 text-sm mt-1">Add what-if scenarios to plan for contingencies.</p>
+          <AlertTriangle size={32} className="mx-auto text-stone-300 mb-3" />
+          <p className="text-stone-500 font-medium">No contingencies yet</p>
+          <p className="text-stone-400 text-sm mt-1">Add scenarios to plan for things that could affect your decisions.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <AnimatePresence>
             {items.map(item => (
-              <WhatIfCard key={item.id} item={item} onUpdate={handleUpdate} onDelete={handleDelete} />
+              <ContingencyCard key={item.id} item={item} branches={branches} onUpdate={handleUpdate} onDelete={handleDelete} />
             ))}
           </AnimatePresence>
         </div>
