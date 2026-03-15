@@ -439,6 +439,48 @@ export type Database = {
           },
         ]
       }
+      reports: {
+        Row: {
+          id: string
+          report_type: string
+          title: string
+          html_content: string | null
+          status: string
+          requested_by: string | null
+          generated_by: string | null
+          error_message: string | null
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          report_type: string
+          title: string
+          html_content?: string | null
+          status?: string
+          requested_by?: string | null
+          generated_by?: string | null
+          error_message?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          report_type?: string
+          title?: string
+          html_content?: string | null
+          status?: string
+          requested_by?: string | null
+          generated_by?: string | null
+          error_message?: string | null
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

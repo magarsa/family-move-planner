@@ -295,3 +295,32 @@ end $$;
 
 -- Cached proximity/area data for each property (populated by lookup-property edge function)
 alter table properties add column if not exists proximity jsonb;
+
+-- ============================================================
+-- Migration 005: AI Reports
+-- ============================================================
+
+create table if not exists reports (
+  id            uuid primary key default gen_random_uuid(),
+  report_type   text not null,                          -- 'move-overview' | 'home-sale' | 'house-hunt'
+  title         text not null,
+  html_content  text,                                   -- full generated HTML (null while streaming)
+  status        text not null default 'pending',        -- 'pending' | 'generating' | 'complete' | 'error'
+  requested_by  text,                                   -- matches your existing updated_by pattern
+  generated_by  text default 'claude-sonnet-4-6',
+  error_message text,
+  metadata      jsonb default '{}',                     -- store token counts, duration, etc.
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+-- auto-update updated_at (reuses the trg_set_updated_at function defined above)
+create trigger reports_updated_at
+  before update on reports
+  for each row execute function trg_set_updated_at();
+
+-- add to realtime so the React app sees status changes live
+alter publication supabase_realtime add table reports;
+
+-- index for listing by type + date
+create index if not exists reports_type_created on reports (report_type, created_at desc);
