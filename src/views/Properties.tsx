@@ -174,6 +174,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const [deleting, setDeleting] = useState(false)
   const [linkedSchools, setLinkedSchools] = useState<SchoolRow[]>([])
   const [schoolsLoaded, setSchoolsLoaded] = useState(false)
+  const [loadingSnapshot, setLoadingSnapshot] = useState(false)
 
   const status = (property.status || 'Considering') as PropertyStatus
   const style = STATUS_STYLES[status]
@@ -262,6 +263,24 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
     setDeleting(true)
     onDelete(property.id)
     await supabase.from('properties').delete().eq('id', property.id)
+  }
+
+  async function handleLoadSnapshot() {
+    setLoadingSnapshot(true)
+    try {
+      const result = await lookupProperty(property.address)
+      if (result.proximity) {
+        await supabase
+          .from('properties')
+          .update({ proximity: result.proximity as unknown as Json })
+          .eq('id', property.id)
+        onUpdate(property.id, { proximity: result.proximity as unknown as typeof property.proximity })
+      }
+    } catch (err) {
+      console.error('Failed to load area snapshot', err)
+    } finally {
+      setLoadingSnapshot(false)
+    }
   }
 
   const linkedBranch = branches.find(b => b.id === property.branch_id)
@@ -496,9 +515,18 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                 {property.proximity ? (
                   <AreaSnapshot proximity={property.proximity as unknown as ProximityData} />
                 ) : (
-                  <p className="text-xs text-stone-400 dark:text-stone-500">
-                    Use "Autofill from listing" when adding a property to load the area snapshot.
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-stone-400 dark:text-stone-500">No area data yet.</p>
+                    <button
+                      onClick={handleLoadSnapshot}
+                      disabled={loadingSnapshot}
+                      className="flex items-center gap-1.5 text-xs text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 disabled:opacity-50 transition-colors"
+                    >
+                      {loadingSnapshot
+                        ? <><Loader2 size={12} className="animate-spin" /> Loading…</>
+                        : <><MapPin size={12} /> Load area snapshot</>}
+                    </button>
+                  </div>
                 )}
               </div>
 
