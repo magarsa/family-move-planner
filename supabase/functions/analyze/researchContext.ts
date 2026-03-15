@@ -21,6 +21,12 @@ When analyzing, draw on your knowledge of:
 - Flood zones, environmental risks, and HOA norms for the specific suburb
 
 Be specific to the area and address provided — do not give generic responses.
+Grade each property relative to its own metro market — a "B" for budget fit means it's good value for that specific city's market (Greenville, Raleigh, or Charlotte suburbs), not relative to a different metro.
+
+KEY EMPLOYMENT CENTERS BY METRO (use these when grading commute):
+- Charlotte NC suburbs (Fort Mill, Waxhaw, Huntersville, Concord, etc.): Charlotte CBD (Uptown), Ballantyne Corporate Park, SouthPark, I-485 corridor employers
+- Greenville SC area (Simpsonville, Mauldin, Greer, Taylors, etc.): Downtown Greenville, BMW Manufacturing (Greer/Spartanburg), Michelin North America HQ (Greenville), Prisma Health, GHS, Donaldson Industrial Park
+- Raleigh NC area (Cary, Apex, Morrisville, Holly Springs, Wake Forest, etc.): Research Triangle Park (RTP), Downtown Raleigh, RDU Airport corridor, Durham/Chapel Hill medical and university employers
 `;
 
 // Property-specific user prompt template
