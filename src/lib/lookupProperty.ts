@@ -10,6 +10,7 @@ export interface NearbySchool {
   name: string
   distanceMi: number
   vicinity?: string
+  types?: string[]
 }
 
 export interface WalkScore {
