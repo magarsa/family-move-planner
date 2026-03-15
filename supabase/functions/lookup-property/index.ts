@@ -23,6 +23,11 @@ interface RentCastProperty {
   longitude?: number
 }
 
+interface RentCastListing {
+  price?: number
+  listPrice?: number
+}
+
 interface PlacesResult {
   name: string
   vicinity?: string
@@ -160,14 +165,25 @@ Deno.serve(async (req: Request) => {
 
     // ── 1. RentCast property lookup ──────────────────────────────────────────
     let property: RentCastProperty = {}
+    let listing: RentCastListing | null = null
     if (rentcastKey) {
-      const rcRes = await fetch(
-        `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(address)}&limit=1`,
-        { headers: { 'X-Api-Key': rentcastKey, 'Accept': 'application/json' } }
-      )
+      const [rcRes, listingRes] = await Promise.all([
+        fetch(
+          `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(address)}&limit=1`,
+          { headers: { 'X-Api-Key': rentcastKey, 'Accept': 'application/json' } }
+        ),
+        fetch(
+          `https://api.rentcast.io/v1/listings/sale?address=${encodeURIComponent(address)}&limit=1`,
+          { headers: { 'X-Api-Key': rentcastKey, 'Accept': 'application/json' } }
+        ),
+      ])
       if (rcRes.ok) {
         const rcData = await rcRes.json() as RentCastProperty[] | RentCastProperty
         property = Array.isArray(rcData) ? (rcData[0] || {}) : rcData
+      }
+      if (listingRes.ok) {
+        const listingData = await listingRes.json() as RentCastListing[] | RentCastListing
+        listing = Array.isArray(listingData) ? (listingData[0] || null) : listingData
       }
     }
 
@@ -188,6 +204,9 @@ Deno.serve(async (req: Request) => {
     if (property.yearBuilt) noteParts.push(`Year built: ${property.yearBuilt}`)
     if (property.lotSize) noteParts.push(`Lot: ${(property.lotSize / 43560).toFixed(2)} acres`)
     if (property.propertyType) noteParts.push(`Type: ${property.propertyType}`)
+    const listPrice = listing?.price || listing?.listPrice || null
+    const fallbackPrice = property.price || property.lastSalePrice || null
+    if (!listPrice && fallbackPrice) noteParts.push('Price: estimated value (no active listing found)')
     const notesPrefix = noteParts.length ? noteParts.join(' · ') : null
 
     // Property autofill fields
@@ -195,7 +214,7 @@ Deno.serve(async (req: Request) => {
       beds: property.bedrooms ?? null,
       baths: property.bathrooms ?? null,
       sqft: property.squareFootage ?? null,
-      price: property.price || property.lastSalePrice || null,
+      price: listPrice || fallbackPrice,
       area: area || null,
       zillow_url: zillowUrl,
       notes_prefix: notesPrefix,
@@ -214,6 +233,8 @@ Deno.serve(async (req: Request) => {
         diningResults,
         shoppingResults,
         schoolResults,
+        primarySchoolResults,
+        secondarySchoolResults,
       ] = await Promise.all([
         fetchPlaces(lat, lng, 'grocery_or_supermarket', RADIUS, googleKey),
         fetchPlaces(lat, lng, 'pharmacy', RADIUS, googleKey),
@@ -221,7 +242,18 @@ Deno.serve(async (req: Request) => {
         fetchPlaces(lat, lng, 'restaurant', RADIUS, googleKey),
         fetchPlaces(lat, lng, 'shopping_mall', RADIUS, googleKey),
         fetchPlaces(lat, lng, 'school', RADIUS, googleKey),
+        fetchPlaces(lat, lng, 'primary_school', RADIUS, googleKey),
+        fetchPlaces(lat, lng, 'secondary_school', RADIUS, googleKey),
       ])
+
+      // Merge and deduplicate schools by name (case-insensitive)
+      const seenSchools = new Set<string>()
+      const dedupedSchools = [...schoolResults, ...primarySchoolResults, ...secondarySchoolResults].filter(r => {
+        const key = r.name.toLowerCase()
+        if (seenSchools.has(key)) return false
+        seenSchools.add(key)
+        return true
+      })
 
       // FEMA flood zone
       let floodZone: FloodZone | null = null
@@ -271,7 +303,7 @@ Deno.serve(async (req: Request) => {
         parks: topPlaces(parkResults, lat, lng),
         dining: topPlaces(diningResults, lat, lng, 2),
         shopping: topPlaces(shoppingResults, lat, lng, 2),
-        schools: schoolResults
+        schools: dedupedSchools
           .map(r => ({
             name: r.name,
             distanceMi: r.geometry
