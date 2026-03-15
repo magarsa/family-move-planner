@@ -155,7 +155,6 @@ Deno.serve(async (req: Request) => {
 
     const rentcastKey = Deno.env.get('RENTCAST_API_KEY')
     const googleKey = Deno.env.get('GOOGLE_PLACES_API_KEY')
-    const walkscoreKey = Deno.env.get('WALKSCORE_API_KEY')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
@@ -224,30 +223,6 @@ Deno.serve(async (req: Request) => {
         fetchPlaces(lat, lng, 'school', RADIUS, googleKey),
       ])
 
-      // Walk Score
-      let walkScore: WalkScore | null = null
-      if (walkscoreKey) {
-        try {
-          const wsRes = await fetch(
-            `https://api.walkscore.com/score?format=json&address=${encodeURIComponent(address)}&lat=${lat}&lon=${lng}&transit=1&bike=1&wsapikey=${walkscoreKey}`
-          )
-          if (wsRes.ok) {
-            const wsData = await wsRes.json() as {
-              walkscore?: number
-              transit?: { score?: number }
-              bike?: { score?: number }
-              description?: string
-            }
-            walkScore = {
-              walk: wsData.walkscore ?? 0,
-              transit: wsData.transit?.score ?? 0,
-              bike: wsData.bike?.score ?? 0,
-              description: wsData.description ?? 'Car-dependent',
-            }
-          }
-        } catch { /* walk score is non-critical */ }
-      }
-
       // FEMA flood zone
       let floodZone: FloodZone | null = null
       try {
@@ -307,7 +282,7 @@ Deno.serve(async (req: Request) => {
           }))
           .sort((a, b) => a.distanceMi - b.distanceMi)
           .slice(0, 10),
-        walkScore,
+        walkScore: null,
         floodZone,
         hazards,
       }
