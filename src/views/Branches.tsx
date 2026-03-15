@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save, Home } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save, Home, Plus, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -28,9 +28,10 @@ const STATUS_STYLES: Record<BranchStatus, { badge: string; icon: ReactNode; labe
 interface BranchCardProps {
   branch: BranchRow
   onUpdate: (id: string, patch: Partial<BranchRow>) => void
+  onDelete: (id: string) => void
 }
 
-function BranchCard({ branch, onUpdate }: BranchCardProps) {
+function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
   const { userName } = useUser()
   const [open, setOpen] = useState(false)
   const [editDecision, setEditDecision] = useState(branch.decision_made || '')
@@ -210,15 +211,21 @@ function BranchCard({ branch, onUpdate }: BranchCardProps) {
                 </div>
               )}
 
-              {/* Save button */}
-              {dirty && (
-                <div className="flex justify-end">
+              {/* Footer row: save + delete */}
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => onDelete(branch.id)}
+                  className="text-xs text-stone-400 hover:text-red-400 transition-colors flex items-center gap-1"
+                >
+                  <X size={12} /> Delete
+                </button>
+                {dirty && (
                   <button onClick={save} disabled={saving} className="btn-primary">
                     {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     Save changes
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -227,9 +234,64 @@ function BranchCard({ branch, onUpdate }: BranchCardProps) {
   )
 }
 
+interface AddFormProps {
+  onAdd: (title: string, description: string) => Promise<void>
+  onCancel: () => void
+}
+
+function AddBranchForm({ onAdd, onCancel }: AddFormProps) {
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  async function submit() {
+    if (!title.trim()) return
+    setSaving(true)
+    await onAdd(title.trim(), description.trim())
+    setSaving(false)
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="card p-4 space-y-3 border-2 border-teal-200"
+    >
+      <div className="text-sm font-semibold text-stone-700">New Decision</div>
+      <input
+        autoFocus
+        type="text"
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') onCancel() }}
+        placeholder="Decision title (e.g. Which metro to move to?)"
+        className="input-field"
+      />
+      <input
+        type="text"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Escape') onCancel() }}
+        placeholder="Brief description (optional)"
+        className="input-field"
+      />
+      <div className="flex gap-2 justify-end">
+        <button onClick={onCancel} className="btn-ghost">Cancel</button>
+        <button onClick={submit} disabled={saving || !title.trim()} className="btn-primary">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+          Add Decision
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function Branches() {
+  const { userName } = useUser()
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [showAdd, setShowAdd] = useState(false)
 
   async function fetchBranches() {
     const { data } = await supabase
@@ -252,6 +314,25 @@ export default function Branches() {
     setBranches(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b))
   }
 
+  async function handleDelete(id: string) {
+    setBranches(prev => prev.filter(b => b.id !== id))
+    await supabase.from('branches').delete().eq('id', id)
+  }
+
+  async function handleAdd(title: string, description: string) {
+    const maxOrder = branches.reduce((m, b) => Math.max(m, b.sort_order ?? 0), 0)
+    const newBranch = {
+      title,
+      description: description || null,
+      status: 'Open' as BranchStatus,
+      sort_order: maxOrder + 1,
+      updated_by: userName,
+    }
+    setShowAdd(false)
+    await supabase.from('branches').insert(newBranch)
+    fetchBranches()
+  }
+
   const counts = {
     Open: branches.filter(b => b.status === 'Open').length,
     'In Progress': branches.filter(b => b.status === 'In Progress').length,
@@ -270,19 +351,28 @@ export default function Branches() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-stone-900">Decision Branches</h1>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900">Decisions</h1>
           <p className="text-stone-500 mt-1">Track every major choice on your move.</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className="status-badge bg-stone-100 text-stone-500">{counts.Open} Open</span>
           <span className="status-badge bg-amber-100 text-amber-700">{counts['In Progress']} Active</span>
           <span className="status-badge bg-teal-100 text-teal-700">{counts.Decided} Decided</span>
+          <button onClick={() => setShowAdd(true)} className="btn-primary">
+            <Plus size={15} /> Add Decision
+          </button>
         </div>
       </div>
 
+      <AnimatePresence>
+        {showAdd && (
+          <AddBranchForm onAdd={handleAdd} onCancel={() => setShowAdd(false)} />
+        )}
+      </AnimatePresence>
+
       <div className="space-y-3">
         {branches.map(branch => (
-          <BranchCard key={branch.id} branch={branch} onUpdate={handleUpdate} />
+          <BranchCard key={branch.id} branch={branch} onUpdate={handleUpdate} onDelete={handleDelete} />
         ))}
       </div>
     </div>
