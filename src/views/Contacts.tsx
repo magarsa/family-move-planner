@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
   ChevronDown, ChevronUp, Phone, Mail, Globe, Building2,
-  Save, Loader2, Trash2, Plus, Link as LinkIcon, X,
+  Save, Loader2, Trash2, Plus, Link as LinkIcon, X, User,
 } from 'lucide-react'
+import { METRO_AREAS, METRO_FILTERS } from '../lib/metroAreas'
+import type { MetroFilter } from '../lib/metroAreas'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -69,6 +71,8 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   const [open, setOpen] = useState(false)
 
   // Edit fields
+  const [editName, setEditName] = useState(contact.name)
+  const [editRole, setEditRole] = useState(contact.role || '')
   const [phone, setPhone] = useState(contact.phone || '')
   const [email, setEmail] = useState(contact.email || '')
   const [website, setWebsite] = useState(contact.website || '')
@@ -111,6 +115,8 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   async function save() {
     setSaving(true)
     const patch: Partial<ContactRow> = {
+      name: editName.trim() || contact.name,
+      role: editRole || null,
       phone: phone || null,
       email: email || null,
       website: website || null,
@@ -243,6 +249,30 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
 
               {/* Edit fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-stone-500 dark:text-stone-400 block mb-1">Name</label>
+                  <div className="relative">
+                    <User size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={e => markDirty(setEditName)(e.target.value)}
+                      placeholder="Full name"
+                      className="input-field pl-8 text-sm"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-stone-500 dark:text-stone-400 block mb-1">Role</label>
+                  <select
+                    value={editRole}
+                    onChange={e => markDirty(setEditRole)(e.target.value)}
+                    className="input-field text-sm"
+                  >
+                    <option value="">— Select role —</option>
+                    {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
                 <div>
                   <label className="text-xs font-medium text-stone-500 dark:text-stone-400 block mb-1">Phone</label>
                   <div className="relative">
@@ -567,6 +597,7 @@ export default function Contacts() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [filterRole, setFilterRole] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [metroFilter, setMetroFilter] = useState<MetroFilter>('All')
 
   async function fetchContacts() {
     const { data } = await supabase
@@ -604,9 +635,15 @@ export default function Contacts() {
   // Unique roles from existing contacts for filter dropdown
   const roles = Array.from(new Set(contacts.map(c => c.role).filter(Boolean))) as string[]
 
+  const propAreaMap = Object.fromEntries(properties.map(p => [p.id, p.area || '']))
+
   const filtered = contacts.filter(c => {
     if (filterRole && c.role !== filterRole) return false
     if (filterStatus && c.status !== filterStatus) return false
+    if (metroFilter !== 'All') {
+      const area = c.linked_property_id ? propAreaMap[c.linked_property_id] : ''
+      if (!METRO_AREAS[metroFilter]?.includes(area)) return false
+    }
     return true
   })
 
@@ -639,6 +676,23 @@ export default function Contacts() {
           <span className={`status-badge ${STATUS_STYLES.Active.badge}`}>{counts.Active} Active</span>
           <span className={`status-badge ${STATUS_STYLES.Hired.badge}`}>{counts.Hired} Hired</span>
         </div>
+      </div>
+
+      {/* Metro filter */}
+      <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 w-fit">
+        {METRO_FILTERS.map(f => (
+          <button
+            key={f}
+            onClick={() => setMetroFilter(f)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              metroFilter === f
+                ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+            }`}
+          >
+            {f}
+          </button>
+        ))}
       </div>
 
       {/* Filters + Add button */}
