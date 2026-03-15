@@ -163,6 +163,9 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+    console.log('[lookup-property] address:', address)
+    console.log('[lookup-property] keys present — rentcast:', !!rentcastKey, 'google:', !!googleKey)
+
     // ── 1. RentCast property lookup ──────────────────────────────────────────
     let property: RentCastProperty = {}
     let listing: RentCastListing | null = null
@@ -177,6 +180,8 @@ Deno.serve(async (req: Request) => {
           { headers: { 'X-Api-Key': rentcastKey, 'Accept': 'application/json' } }
         ),
       ])
+      console.log('[lookup-property] rentcast /properties status:', rcRes.status)
+      console.log('[lookup-property] rentcast /listings/sale status:', listingRes.status)
       if (rcRes.ok) {
         const rcData = await rcRes.json() as RentCastProperty[] | RentCastProperty
         property = Array.isArray(rcData) ? (rcData[0] || {}) : rcData
@@ -192,7 +197,7 @@ Deno.serve(async (req: Request) => {
     const city = property.city || ''
     const state = property.state || ''
 
-    // Derive area label (e.g. "Fort Mill, SC")
+    console.log('[lookup-property] lat:', lat, 'lng:', lng, 'city:', city, 'state:', state)
     const area = city && state ? `${city}, ${state}` : ''
 
     // Build a Zillow search URL from address
@@ -361,6 +366,13 @@ Deno.serve(async (req: Request) => {
             .upsert({ property_id: propertyId, school_id: schoolId })
         }
       }
+    }
+
+    console.log('[lookup-property] proximity null?', proximity === null)
+    if (proximity) {
+      console.log('[lookup-property] proximity grocery count:', proximity.grocery.length)
+      console.log('[lookup-property] proximity schools count:', proximity.schools.length)
+      console.log('[lookup-property] floodZone:', proximity.floodZone?.zone ?? 'none')
     }
 
     return new Response(
