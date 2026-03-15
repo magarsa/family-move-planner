@@ -126,12 +126,25 @@ export default function Reports() {
   }, [userName]);
 
   // ── Load a past report ─────────────────────────────────────────────────────
-  const loadHistoryReport = useCallback((report: Report) => {
-    if (!report.html_content) return;
+  // html_content may be null on Realtime UPDATE payloads (Supabase strips large
+  // columns that exceed the ~1 MB Realtime message cap).  Fetch it directly from
+  // the DB in that case so clicking always works regardless of how the history
+  // entry was hydrated.
+  const loadHistoryReport = useCallback(async (report: Report) => {
+    let html = report.html_content;
+    if (!html) {
+      const { data } = await supabase
+        .from("reports")
+        .select("html_content")
+        .eq("id", report.id)
+        .single();
+      html = data?.html_content ?? null;
+    }
+    if (!html) return;
     const config = REPORT_TYPE_CONFIGS.find((c) => c.type === report.report_type)!;
     setActiveType(report.report_type);
     setActiveTitle(config.label);
-    setStreamedHtml(report.html_content);
+    setStreamedHtml(html);
     setStreamStatus("complete");
     setStreamError(undefined);
     setHistoryOpen(false);
