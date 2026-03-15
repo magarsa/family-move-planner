@@ -75,7 +75,7 @@ export default function Reports() {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(20)
-      .then(({ data }) => { if (data) setHistory(data as Report[]); });
+      .then(({ data }) => { if (data) setHistory(data as unknown as Report[]); });
   }, []);
 
   // ── Subscribe to Realtime changes on `reports` ────────────────────────────
