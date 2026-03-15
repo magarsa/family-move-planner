@@ -194,6 +194,7 @@ export type Database = {
           created_at: string | null
           updated_at: string | null
           updated_by: string | null
+          proximity: Json | null
         }
         Insert: {
           id?: string
@@ -216,6 +217,7 @@ export type Database = {
           created_at?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          proximity?: Json | null
         }
         Update: {
           id?: string
@@ -238,6 +240,7 @@ export type Database = {
           created_at?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          proximity?: Json | null
         }
         Relationships: [
           {

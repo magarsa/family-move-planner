@@ -4,7 +4,7 @@ import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, Graduati
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Tables } from '../types/database'
+import type { Tables, Json } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
@@ -607,7 +607,7 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
       sqft: sqft ? parseInt(sqft.replace(/\D/g, '')) : null,
       zillow_url: zillowUrl || null,
       notes: notes || null,
-      proximity: pendingProximity as unknown as typeof data,
+      proximity: pendingProximity as unknown as Json,
       status: 'Considering',
       added_by: userName,
       updated_by: userName,
