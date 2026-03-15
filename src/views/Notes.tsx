@@ -26,8 +26,8 @@ function groupByDate(notes: NoteRow[]): Record<string, NoteRow[]> {
 }
 
 const AUTHOR_COLORS: Record<string, string> = {
-  Safal: 'bg-teal-100 text-teal-700',
-  Prativa: 'bg-purple-100 text-purple-700',
+  Safal: 'bg-teal-100 text-teal-700 dark:bg-teal-800/40 dark:text-teal-200',
+  Prativa: 'bg-purple-100 text-purple-700 dark:bg-purple-800/40 dark:text-purple-200',
 }
 
 export default function Notes() {
@@ -91,35 +91,35 @@ export default function Notes() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="font-serif text-2xl font-semibold text-stone-900">Session Journal</h1>
-        <p className="text-stone-500 mt-1">Running log of notes, decisions, and reflections.</p>
+        <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">Session Journal</h1>
+        <p className="text-stone-500 dark:text-stone-400 mt-1">Running log of notes, decisions, and reflections.</p>
       </div>
 
       {/* Notes feed */}
       <div className="space-y-6">
         {days.length === 0 ? (
           <div className="card p-12 text-center">
-            <BookOpen size={32} className="mx-auto text-stone-300 mb-3" />
-            <p className="text-stone-500 font-medium">Your journal is empty</p>
-            <p className="text-stone-400 text-sm mt-1">Add your first note below.</p>
+            <BookOpen size={32} className="mx-auto text-stone-300 dark:text-stone-600 mb-3" />
+            <p className="text-stone-500 dark:text-stone-400 font-medium">Your journal is empty</p>
+            <p className="text-stone-400 dark:text-stone-500 text-sm mt-1">Add your first note below.</p>
           </div>
         ) : (
           days.map(day => (
             <div key={day}>
               {/* Date divider */}
               <div className="flex items-center gap-3 mb-4">
-                <div className="h-px flex-1 bg-stone-200" />
-                <span className="text-xs font-medium text-stone-400 uppercase tracking-wide whitespace-nowrap">
+                <div className="h-px flex-1 bg-stone-200 dark:bg-stone-700" />
+                <span className="text-xs font-medium text-stone-400 dark:text-stone-500 uppercase tracking-wide whitespace-nowrap">
                   {formatDate(grouped[day][0].created_at ?? '')}
                 </span>
-                <div className="h-px flex-1 bg-stone-200" />
+                <div className="h-px flex-1 bg-stone-200 dark:bg-stone-700" />
               </div>
 
               <div className="space-y-3">
                 <AnimatePresence initial={false}>
                   {grouped[day].map(note => {
                     const isMe = note.author === userName
-                    const colorClass = AUTHOR_COLORS[note.author || ''] || 'bg-stone-100 text-stone-600'
+                    const colorClass = AUTHOR_COLORS[note.author || ''] || 'bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300'
                     return (
                       <motion.div
                         key={note.id}
@@ -134,7 +134,7 @@ export default function Notes() {
                                 {note.author || 'Unknown'}
                               </span>
                             )}
-                            <span className="text-xs text-stone-400">{formatTime(note.created_at ?? '')}</span>
+                            <span className="text-xs text-stone-400 dark:text-stone-500">{formatTime(note.created_at ?? '')}</span>
                             {isMe && (
                               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorClass}`}>
                                 {note.author}
@@ -142,7 +142,9 @@ export default function Notes() {
                             )}
                           </div>
                           <div className={`card px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                            isMe ? 'bg-teal-50 border-teal-100 text-stone-800' : 'text-stone-700'
+                            isMe
+                              ? 'bg-teal-50 dark:bg-teal-900/30 border-teal-100 dark:border-teal-800 text-stone-800 dark:text-stone-100'
+                              : 'text-stone-700 dark:text-stone-200'
                           }`}>
                             {note.content}
                           </div>
@@ -162,7 +164,7 @@ export default function Notes() {
       <div className="card p-4 sticky bottom-4 shadow-lg">
         <div className="flex items-start gap-3">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-sm ${
-            AUTHOR_COLORS[userName || ''] || 'bg-stone-100 text-stone-600'
+            AUTHOR_COLORS[userName || ''] || 'bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300'
           }`}>
             {userName === 'Safal' ? '👨' : '👩'}
           </div>
@@ -177,7 +179,7 @@ export default function Notes() {
               className="textarea-field"
             />
             <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-stone-400">⌘+Enter to post · Posting as {userName}</span>
+              <span className="text-xs text-stone-400 dark:text-stone-500">⌘+Enter to post · Posting as {userName}</span>
               <button
                 onClick={addNote}
                 disabled={saving || !content.trim()}

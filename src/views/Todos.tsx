@@ -9,10 +9,10 @@ import { useUser } from '../hooks/useUser'
 type Tier = 'Do First' | 'Do Soon' | 'Do When Ready' | 'Later'
 
 const TIERS: { id: Tier; emoji: string; label: string; desc: string; color: string; bg: string; ring: string; dot: string }[] = [
-  { id: 'Do First',      emoji: '🔴', label: 'Do First',       desc: 'This Month',  color: 'text-red-700',   bg: 'bg-red-50',    ring: 'ring-red-200',   dot: 'bg-red-500' },
-  { id: 'Do Soon',       emoji: '🟡', label: 'Do Soon',        desc: 'Month 1–2',   color: 'text-amber-700', bg: 'bg-amber-50',  ring: 'ring-amber-200', dot: 'bg-amber-500' },
-  { id: 'Do When Ready', emoji: '🟢', label: 'Do When Ready',  desc: 'Month 2–4',   color: 'text-green-700', bg: 'bg-green-50',  ring: 'ring-green-200', dot: 'bg-green-500' },
-  { id: 'Later',         emoji: '🔵', label: 'Later / Ongoing', desc: 'Ongoing',    color: 'text-blue-700',  bg: 'bg-blue-50',   ring: 'ring-blue-200',  dot: 'bg-blue-500' },
+  { id: 'Do First',      emoji: '🔴', label: 'Do First',        desc: 'This Month', color: 'text-red-700 dark:text-red-300',    bg: 'bg-red-50 dark:bg-red-900/20',    ring: 'ring-red-200 dark:ring-red-700',    dot: 'bg-red-500' },
+  { id: 'Do Soon',       emoji: '🟡', label: 'Do Soon',         desc: 'Month 1–2',  color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20', ring: 'ring-amber-200 dark:ring-amber-700', dot: 'bg-amber-500' },
+  { id: 'Do When Ready', emoji: '🟢', label: 'Do When Ready',   desc: 'Month 2–4',  color: 'text-green-700 dark:text-green-300', bg: 'bg-green-50 dark:bg-green-900/20', ring: 'ring-green-200 dark:ring-green-700', dot: 'bg-green-500' },
+  { id: 'Later',         emoji: '🔵', label: 'Later / Ongoing', desc: 'Ongoing',    color: 'text-blue-700 dark:text-blue-300',   bg: 'bg-blue-50 dark:bg-blue-900/20',   ring: 'ring-blue-200 dark:ring-blue-700',   dot: 'bg-blue-500' },
 ]
 
 interface AddingState {
@@ -117,8 +117,8 @@ export default function Todos() {
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
-        <h1 className="font-serif text-2xl font-semibold text-stone-900">To-Do List</h1>
-        <p className="text-stone-500 mt-1">
+        <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">To-Do List</h1>
+        <p className="text-stone-500 dark:text-stone-400 mt-1">
           {todos.filter(t => t.completed).length} of {todos.length} tasks complete
         </p>
       </div>
@@ -137,11 +137,11 @@ export default function Todos() {
                   <span className="text-lg leading-none">{tier.emoji}</span>
                   <div>
                     <span className={`font-semibold text-sm ${tier.color}`}>{tier.label}</span>
-                    <span className="text-xs text-stone-400 ml-2">{tier.desc}</span>
+                    <span className="text-xs text-stone-500 dark:text-stone-400 ml-2">{tier.desc}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-stone-500">{pending.length} pending</span>
+                  <span className="text-xs text-stone-500 dark:text-stone-400">{pending.length} pending</span>
                   <button
                     onClick={() => setAdding({ tier: tier.id, text: '' })}
                     className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors ${tier.color} hover:bg-white/60`}
@@ -152,7 +152,7 @@ export default function Todos() {
               </div>
 
               {/* Todo items */}
-              <div className="divide-y divide-stone-50">
+              <div className="divide-y divide-stone-50 dark:divide-stone-700/50">
                 <AnimatePresence initial={false}>
                   {pending.map(todo => (
                     <motion.div
@@ -162,11 +162,11 @@ export default function Todos() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, height: 0, marginTop: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="flex items-start gap-3 px-5 py-3.5 group hover:bg-stone-50 transition-colors"
+                      className="flex items-start gap-3 px-5 py-3.5 group hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors"
                     >
                       <button
                         onClick={() => toggleTodo(todo)}
-                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${tier.ring} border-stone-300 hover:border-teal-500`}
+                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${tier.ring} border-stone-300 dark:border-stone-600 hover:border-teal-500`}
                       />
                       {editingId === todo.id ? (
                         <input
@@ -178,11 +178,11 @@ export default function Todos() {
                             if (e.key === 'Enter') saveEdit(todo.id)
                             if (e.key === 'Escape') setEditingId(null)
                           }}
-                          className="flex-1 px-2 py-0.5 text-sm bg-white border border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          className="flex-1 px-2 py-0.5 text-sm bg-white dark:bg-stone-700 dark:text-stone-100 border border-teal-300 dark:border-teal-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
                         />
                       ) : (
                         <span
-                          className="flex-1 text-sm text-stone-800 leading-relaxed cursor-text"
+                          className="flex-1 text-sm text-stone-800 dark:text-stone-200 leading-relaxed cursor-text"
                           onDoubleClick={() => startEdit(todo)}
                           title="Double-click to edit"
                         >
@@ -213,7 +213,7 @@ export default function Todos() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="px-5 py-3 bg-stone-50 border-t border-stone-100"
+                      className="px-5 py-3 bg-stone-50 dark:bg-stone-800 border-t border-stone-100 dark:border-stone-700"
                     >
                       <div className="flex items-center gap-2">
                         <input
@@ -226,14 +226,14 @@ export default function Todos() {
                             if (e.key === 'Escape') setAdding(null)
                           }}
                           placeholder={`New ${tier.label} task…`}
-                          className="flex-1 px-3 py-1.5 text-sm bg-white border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          className="flex-1 px-3 py-1.5 text-sm bg-white dark:bg-stone-700 dark:text-stone-100 dark:placeholder-stone-400 border border-stone-200 dark:border-stone-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                         />
                         <button onClick={addTodo} disabled={saving} className="btn-primary py-1.5 px-3 text-xs">
                           {saving ? <Loader2 size={13} className="animate-spin" /> : 'Add'}
                         </button>
                         <button onClick={() => setAdding(null)} className="btn-ghost py-1.5 px-3 text-xs">Cancel</button>
                       </div>
-                      <p className="text-xs text-stone-400 mt-1.5 ml-1">Press Enter to add · Esc to cancel</p>
+                      <p className="text-xs text-stone-400 dark:text-stone-500 mt-1.5 ml-1">Press Enter to add · Esc to cancel</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -247,7 +247,7 @@ export default function Todos() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="flex items-start gap-3 px-5 py-3 group hover:bg-stone-50/60 transition-colors"
+                      className="flex items-start gap-3 px-5 py-3 group hover:bg-stone-50/60 dark:hover:bg-stone-700/20 transition-colors"
                     >
                       <button
                         onClick={() => toggleTodo(todo)}
@@ -256,9 +256,9 @@ export default function Todos() {
                         <Check size={11} className="text-white" strokeWidth={3} />
                       </button>
                       <div className="flex-1 min-w-0">
-                        <span className="text-sm text-stone-400 line-through">{todo.text}</span>
+                        <span className="text-sm text-stone-400 dark:text-stone-500 line-through">{todo.text}</span>
                         {todo.completed_by && (
-                          <span className="ml-2 text-xs text-stone-300">
+                          <span className="ml-2 text-xs text-stone-300 dark:text-stone-600">
                             by {todo.completed_by}
                             {todo.completed_at && ` · ${new Date(todo.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                           </span>
@@ -275,7 +275,7 @@ export default function Todos() {
                 </AnimatePresence>
 
                 {tierTodos.length === 0 && adding?.tier !== tier.id && (
-                  <div className="px-5 py-4 text-sm text-stone-400 italic">
+                  <div className="px-5 py-4 text-sm text-stone-400 dark:text-stone-500 italic">
                     No tasks yet —{' '}
                     <button
                       onClick={() => setAdding({ tier: tier.id, text: '' })}
