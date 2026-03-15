@@ -62,6 +62,12 @@ function formatVisitDate(dt: string | null) {
   return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
+function buildZillowUrl(property: PropertyRow): string {
+  if (property.zillow_url) return property.zillow_url
+  const slug = property.address.replace(/,/g, '').replace(/\s+/g, '-')
+  return `https://www.zillow.com/homes/${encodeURIComponent(slug)}_rb/`
+}
+
 // ─── Area Snapshot ───────────────────────────────────────────────────────────
 
 function walkScoreColor(score: number) {
@@ -161,7 +167,6 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const [open, setOpen] = useState(false)
   const [editNotes, setEditNotes] = useState(property.notes || '')
   const [editVisitNotes, setEditVisitNotes] = useState(property.visit_notes || '')
-  const [editZillow, setEditZillow] = useState(property.zillow_url || '')
   const [scheduleDate, setScheduleDate] = useState(property.visit_at ? property.visit_at.slice(0, 16) : '')
   const [schedulingVisit, setSchedulingVisit] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -179,7 +184,6 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
     const patch: Partial<PropertyRow> = {
       notes: editNotes || null,
       visit_notes: editVisitNotes || null,
-      zillow_url: editZillow || null,
       updated_by: userName,
       updated_at: new Date().toISOString(),
     }
@@ -303,6 +307,16 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
             }`}>{analysis.overallGrade}</span>
           )}
         </div>
+        <a
+          href={buildZillowUrl(property)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={e => e.stopPropagation()}
+          title="View on Zillow"
+          className="flex-shrink-0 p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-colors"
+        >
+          <ExternalLink size={14} />
+        </a>
         {open ? <ChevronUp size={16} className="text-stone-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-stone-400 flex-shrink-0" />}
       </button>
 
@@ -322,17 +336,15 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                 {property.beds && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🛏 {property.beds} bed</span>}
                 {property.baths && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🚿 {property.baths} bath</span>}
                 {property.sqft && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📐 {property.sqft.toLocaleString()} sqft</span>}
-                {property.zillow_url && (
-                  <a
-                    href={property.zillow_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="status-badge bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1 hover:opacity-80"
-                  >
-                    <ExternalLink size={10} /> Zillow
-                  </a>
-                )}
+                <a
+                  href={buildZillowUrl(property)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="status-badge bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1 hover:opacity-80"
+                >
+                  <ExternalLink size={10} /> Zillow
+                </a>
               </div>
 
               {/* Status selector */}
@@ -390,18 +402,6 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                   />
                 </div>
               )}
-
-              {/* Zillow URL */}
-              <div>
-                <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Zillow / Listing URL</div>
-                <input
-                  type="url"
-                  value={editZillow}
-                  onChange={e => { setEditZillow(e.target.value); setDirty(true) }}
-                  placeholder="https://www.zillow.com/homedetails/..."
-                  className="input-field text-sm"
-                />
-              </div>
 
               {/* Notes */}
               <div>
