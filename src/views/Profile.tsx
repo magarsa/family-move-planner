@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Pencil, Check, X, Loader2, User2 } from 'lucide-react'
+import { Pencil, Check, X, Loader2, User2, Home } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -21,6 +21,15 @@ const PROFILE_META: { key: string; label: string; hint?: string; multiline?: boo
   { key: 'equity_to_deploy',          label: 'Expected Equity to Deploy' },
   { key: 'destination_budget',        label: 'Home Budget' },
   { key: 'target_suburbs',            label: 'Target Suburb(s)',               hint: 'e.g. Fort Mill SC, Cary NC, Simpsonville SC', multiline: true },
+]
+
+const SELL_META: { key: string; label: string; hint?: string; multiline?: boolean }[] = [
+  { key: 'sell_address',              label: 'Current Home Address',  hint: 'The property you are selling' },
+  { key: 'sell_status',               label: 'Sale Status',           hint: 'Pre-Market · Listed · Showings Active · Offer Received · Under Contract · Closed' },
+  { key: 'sell_asking_price',         label: 'Target List Price',     hint: 'Enter as a number, e.g. 450000' },
+  { key: 'sell_mortgage_payoff',      label: 'Mortgage Payoff',       hint: 'Current balance owed on your mortgage' },
+  { key: 'sell_agent_commission_pct', label: 'Agent Commission %',    hint: 'e.g. 5.5 for 5.5%' },
+  { key: 'sell_target_close_date',    label: 'Target Close Date',     hint: 'e.g. June 2026' },
 ]
 
 interface RowProps {
@@ -160,6 +169,19 @@ export default function Profile() {
     return !row?.value || row.value === 'TBD' || row.value === '⬜ TBD'
   }).length
 
+  // Sell-side net proceeds
+  function getVal(key: string) { return rows.find(r => r.key === key)?.value || '' }
+  const askingPrice    = parseFloat(getVal('sell_asking_price').replace(/[^0-9.]/g, '')) || 0
+  const mortgagePayoff = parseFloat(getVal('sell_mortgage_payoff').replace(/[^0-9.]/g, '')) || 0
+  const commissionPct  = parseFloat(getVal('sell_agent_commission_pct').replace(/[^0-9.]/g, '')) || 0
+  const commission     = askingPrice * commissionPct / 100
+  const closingCosts   = askingPrice * 0.01
+  const netProceeds    = askingPrice - mortgagePayoff - commission - closingCosts
+  const hasSellData    = askingPrice > 0
+  function fmtDollars(n: number) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -191,6 +213,64 @@ export default function Profile() {
             onSave={handleSave}
           />
         ))}
+      </div>
+
+      {/* Selling Your Home section */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Home size={16} className="text-orange-500" />
+          <h2 className="font-semibold text-stone-800 dark:text-stone-200">Selling Your Home</h2>
+        </div>
+        <div className="card px-5 divide-y divide-stone-100 dark:divide-stone-800">
+          {SELL_META.map(meta => (
+            <ProfileFieldRow
+              key={meta.key}
+              meta={meta}
+              row={rows.find(r => r.key === meta.key)}
+              onSave={handleSave}
+            />
+          ))}
+        </div>
+
+        {/* Net Proceeds Calculator */}
+        {hasSellData && (
+          <div className="mt-3 card p-5 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30">
+            <div className="text-xs font-semibold text-orange-700 dark:text-orange-400 uppercase tracking-wide mb-3">
+              Net Proceeds Estimate
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-stone-600 dark:text-stone-400">List Price</span>
+                <span className="font-medium text-stone-800 dark:text-stone-200">{fmtDollars(askingPrice)}</span>
+              </div>
+              {mortgagePayoff > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-stone-600 dark:text-stone-400">− Mortgage Payoff</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">({fmtDollars(mortgagePayoff)})</span>
+                </div>
+              )}
+              {commissionPct > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-stone-600 dark:text-stone-400">− Agent Commission ({commissionPct}%)</span>
+                  <span className="font-medium text-red-600 dark:text-red-400">({fmtDollars(commission)})</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-stone-600 dark:text-stone-400">− Closing Costs (~1%)</span>
+                <span className="font-medium text-red-600 dark:text-red-400">({fmtDollars(closingCosts)})</span>
+              </div>
+              <div className="border-t border-orange-200 dark:border-orange-900/50 pt-2 flex justify-between items-center">
+                <span className="font-semibold text-stone-800 dark:text-stone-200">Estimated Net Proceeds</span>
+                <span className={`font-bold text-lg ${netProceeds >= 0 ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {netProceeds >= 0 ? fmtDollars(netProceeds) : `(${fmtDollars(Math.abs(netProceeds))})`}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-2">
+              Closing costs estimated at 1% of list price. Actual costs may vary.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="card p-5 bg-teal-50 border-teal-100">

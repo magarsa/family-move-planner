@@ -7,6 +7,8 @@ type TodoRow = Tables<'todos'>
 import { useUser } from '../hooks/useUser'
 
 type Tier = 'Do First' | 'Do Soon' | 'Do When Ready' | 'Later'
+type SellTier = 'sell_Do First' | 'sell_Do Soon' | 'sell_Do When Ready' | 'sell_Later'
+type Side = 'Buying' | 'Selling'
 
 const TIERS: { id: Tier; emoji: string; label: string; desc: string; color: string; bg: string; ring: string; dot: string }[] = [
   { id: 'Do First',      emoji: '🔴', label: 'Do First',        desc: 'This Month', color: 'text-red-700 dark:text-red-300',    bg: 'bg-red-50 dark:bg-red-900/20',    ring: 'ring-red-200 dark:ring-red-700',    dot: 'bg-red-500' },
@@ -15,8 +17,15 @@ const TIERS: { id: Tier; emoji: string; label: string; desc: string; color: stri
   { id: 'Later',         emoji: '🔵', label: 'Later / Ongoing', desc: 'Ongoing',    color: 'text-blue-700 dark:text-blue-300',   bg: 'bg-blue-50 dark:bg-blue-900/20',   ring: 'ring-blue-200 dark:ring-blue-700',   dot: 'bg-blue-500' },
 ]
 
+const SELL_TIERS: { id: SellTier; emoji: string; label: string; desc: string; color: string; bg: string; ring: string; dot: string }[] = [
+  { id: 'sell_Do First',      emoji: '🔴', label: 'Must Fix',           desc: 'Before Listing',       color: 'text-red-700 dark:text-red-300',    bg: 'bg-red-50 dark:bg-red-900/20',    ring: 'ring-red-200 dark:ring-red-700',    dot: 'bg-red-500' },
+  { id: 'sell_Do Soon',       emoji: '🟡', label: 'Pre-Listing Prep',   desc: 'Staging & Photography', color: 'text-amber-700 dark:text-amber-300', bg: 'bg-amber-50 dark:bg-amber-900/20', ring: 'ring-amber-200 dark:ring-amber-700', dot: 'bg-amber-500' },
+  { id: 'sell_Do When Ready', emoji: '🟢', label: 'Curb Appeal',        desc: 'Finishing Touches',     color: 'text-green-700 dark:text-green-300', bg: 'bg-green-50 dark:bg-green-900/20', ring: 'ring-green-200 dark:ring-green-700', dot: 'bg-green-500' },
+  { id: 'sell_Later',         emoji: '🔵', label: 'Post-Closing',       desc: 'After Sale',            color: 'text-blue-700 dark:text-blue-300',   bg: 'bg-blue-50 dark:bg-blue-900/20',   ring: 'ring-blue-200 dark:ring-blue-700',   dot: 'bg-blue-500' },
+]
+
 interface AddingState {
-  tier: Tier
+  tier: string
   text: string
 }
 
@@ -29,6 +38,7 @@ export default function Todos() {
   const addInputRef = useRef<HTMLInputElement>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [side, setSide] = useState<Side>('Buying')
 
   async function fetchTodos() {
     const { data } = await supabase
@@ -78,7 +88,7 @@ export default function Todos() {
       completed_by: null,
       branch_id: null,
       created_by: userName,
-      sort_order: todos.filter(t => t.tier === adding.tier).length + 1,
+      sort_order: todos.filter(t => t.tier === adding.tier && !t.completed).length + 1,
     }
     // Optimistic: add with temp id
     const tempId = `temp-${Date.now()}`
@@ -114,17 +124,42 @@ export default function Todos() {
     )
   }
 
+  const activeTiers = side === 'Buying' ? TIERS : SELL_TIERS
+  const activeTodos = todos.filter(t =>
+    side === 'Buying'
+      ? !t.tier.startsWith('sell_')
+      : t.tier.startsWith('sell_')
+  )
+
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">To-Do List</h1>
-        <p className="text-stone-500 dark:text-stone-400 mt-1">
-          {todos.filter(t => t.completed).length} of {todos.length} tasks complete
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">To-Do List</h1>
+          <p className="text-stone-500 dark:text-stone-400 mt-1">
+            {activeTodos.filter(t => t.completed).length} of {activeTodos.length} tasks complete
+          </p>
+        </div>
+        {/* Buy/Sell toggle */}
+        <div className="flex gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 flex-shrink-0">
+          {(['Buying', 'Selling'] as Side[]).map(s => (
+            <button
+              key={s}
+              onClick={() => { setSide(s); setAdding(null) }}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                side === s
+                  ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
+                  : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-300'
+              }`}
+            >
+              {s === 'Buying' ? '🏠 Buying' : '🏷️ Selling'}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-6">
-        {TIERS.map(tier => {
+        {activeTiers.map(tier => {
           const tierTodos = todos.filter(t => t.tier === tier.id)
           const pending = tierTodos.filter(t => !t.completed)
           const done = tierTodos.filter(t => t.completed)
