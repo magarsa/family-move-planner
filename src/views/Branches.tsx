@@ -20,9 +20,9 @@ type BranchStatus = 'Open' | 'In Progress' | 'Decided'
 
 
 const STATUS_STYLES: Record<BranchStatus, { badge: string; icon: ReactNode; label: string }> = {
-  'Open':        { badge: 'bg-stone-100 text-stone-500',    icon: <Circle size={12} />,  label: 'Open' },
-  'In Progress': { badge: 'bg-amber-100 text-amber-700',    icon: <Minus size={12} />,   label: 'In Progress' },
-  'Decided':     { badge: 'bg-teal-100 text-teal-700',      icon: <Check size={12} />,   label: 'Decided' },
+  'Open':        { badge: 'bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-300',    icon: <Circle size={12} />,  label: 'Open' },
+  'In Progress': { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: <Minus size={12} />,   label: 'In Progress' },
+  'Decided':     { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',     icon: <Check size={12} />,   label: 'Decided' },
 }
 
 interface BranchCardProps {
@@ -97,15 +97,15 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
     <div className={`card overflow-hidden transition-shadow ${open ? 'shadow-md' : ''}`}>
       {/* Header row */}
       <button
-        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-stone-50 transition-colors"
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         onClick={() => setOpen(!open)}
       >
         <span className={`status-badge ${style.badge} flex items-center gap-1`}>
           {style.icon} {style.label}
         </span>
-        <span className="flex-1 font-semibold text-stone-800">{branch.title}</span>
+        <span className="flex-1 font-semibold text-stone-800 dark:text-stone-100">{branch.title}</span>
         {branch.updated_by && (
-          <span className="text-xs text-stone-400 hidden sm:block">
+          <span className="text-xs text-stone-400 dark:text-stone-500 hidden sm:block">
             Updated by {branch.updated_by}
           </span>
         )}
@@ -121,14 +121,14 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="border-t border-stone-100 px-5 py-5 space-y-5">
+            <div className="border-t border-stone-100 dark:border-stone-700 px-5 py-5 space-y-5">
               {/* Title / Description edit */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Decision Details</div>
+                  <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Decision Details</div>
                   <button
                     onClick={() => setEditingHeader(!editingHeader)}
-                    className="flex items-center gap-1 text-xs text-stone-400 hover:text-teal-600 transition-colors"
+                    className="flex items-center gap-1 text-xs text-stone-400 dark:text-stone-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                   >
                     {editingHeader ? <><X size={11} /> Cancel</> : <><Pencil size={11} /> Edit</>}
                   </button>
@@ -154,14 +154,14 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
                   </div>
                 ) : (
                   branch.description && (
-                    <p className="text-sm text-stone-600 leading-relaxed italic">{branch.description}</p>
+                    <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed italic">{branch.description}</p>
                   )
                 )}
               </div>
 
               {/* Status selector */}
               <div>
-                <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">Status</div>
+                <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-2">Status</div>
                 <div className="flex gap-2 flex-wrap">
                   {(['Open', 'In Progress', 'Decided'] as BranchStatus[]).map(s => (
                     <button
@@ -178,18 +178,18 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
               {/* Options */}
               {branch.options && (branch.options as unknown as BranchOption[]).length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Options</div>
+                  <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-3">Options</div>
                   <div className="space-y-3">
                     {(branch.options as unknown as BranchOption[]).map((opt, i) => (
-                      <div key={i} className="bg-stone-50 rounded-xl p-4">
-                        <div className="font-medium text-stone-800 text-sm mb-2">{opt.label}</div>
+                      <div key={i} className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4">
+                        <div className="font-medium text-stone-800 dark:text-stone-100 text-sm mb-2">{opt.label}</div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {opt.pros.length > 0 && (
                             <div>
                               <div className="text-xs font-medium text-green-600 mb-1">✅ Pros</div>
                               <ul className="space-y-1">
                                 {opt.pros.map((p, j) => (
-                                  <li key={j} className="text-xs text-stone-600 flex items-start gap-1.5">
+                                  <li key={j} className="text-xs text-stone-600 dark:text-stone-400 flex items-start gap-1.5">
                                     <span className="text-green-400 mt-0.5">+</span>{p}
                                   </li>
                                 ))}
@@ -201,7 +201,7 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
                               <div className="text-xs font-medium text-red-500 mb-1">❌ Cons</div>
                               <ul className="space-y-1">
                                 {opt.cons.map((c, j) => (
-                                  <li key={j} className="text-xs text-stone-600 flex items-start gap-1.5">
+                                  <li key={j} className="text-xs text-stone-600 dark:text-stone-400 flex items-start gap-1.5">
                                     <span className="text-red-400 mt-0.5">−</span>{c}
                                   </li>
                                 ))}
@@ -217,7 +217,7 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
 
               {/* Decision made */}
               <div>
-                <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2">
+                <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-2">
                   Our Decision
                 </div>
                 <textarea
@@ -244,7 +244,7 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
               {/* Linked Properties */}
               {linkedProperties.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                  <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                     <Home size={11} /> Linked Properties
                   </div>
                   <div className="space-y-1.5">
@@ -268,7 +268,7 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
               <div className="flex items-center justify-between">
                 <button
                   onClick={() => onDelete(branch.id)}
-                  className="text-xs text-stone-400 hover:text-red-400 transition-colors flex items-center gap-1"
+                  className="text-xs text-stone-400 dark:text-stone-500 hover:text-red-400 transition-colors flex items-center gap-1"
                 >
                   <X size={12} /> Delete
                 </button>
@@ -311,7 +311,7 @@ function AddBranchForm({ onAdd, onCancel }: AddFormProps) {
       exit={{ opacity: 0, y: -8 }}
       className="card p-4 space-y-3 border-2 border-teal-200"
     >
-      <div className="text-sm font-semibold text-stone-700">New Decision</div>
+      <div className="text-sm font-semibold text-stone-700 dark:text-stone-200">New Decision</div>
       <input
         autoFocus
         type="text"
@@ -404,11 +404,11 @@ export default function Branches() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-stone-900">Decisions</h1>
-          <p className="text-stone-500 mt-1">Track every major choice on your move.</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">Decisions</h1>
+          <p className="text-stone-500 dark:text-stone-400 mt-1">Track every major choice on your move.</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="status-badge bg-stone-100 text-stone-500">{counts.Open} Open</span>
+          <span className="status-badge bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-300">{counts.Open} Open</span>
           <span className="status-badge bg-amber-100 text-amber-700">{counts['In Progress']} Active</span>
           <span className="status-badge bg-teal-100 text-teal-700">{counts.Decided} Decided</span>
           <button onClick={() => setShowAdd(true)} className="btn-primary">
