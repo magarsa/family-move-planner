@@ -29,10 +29,10 @@ interface RentCastListing {
 }
 
 interface PlacesResult {
-  name: string
-  vicinity?: string
+  displayName?: { text: string }
+  formattedAddress?: string
   rating?: number
-  geometry?: { location: { lat: number; lng: number } }
+  location?: { latitude: number; longitude: number }
   types?: string[]
 }
 
@@ -121,22 +121,41 @@ async function fetchPlaces(
   radiusMeters: number,
   apiKey: string
 ): Promise<PlacesResult[]> {
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radiusMeters}&type=${placeType}&key=${apiKey}`
-  const res = await fetch(url)
-  if (!res.ok) return []
-  const data = await res.json() as { results?: PlacesResult[]; status?: string; error_message?: string }
-  if (data.status && data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-    console.error('[lookup-property] Places API error:', data.status, data.error_message || '', 'type:', placeType)
+  const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'places.displayName,places.location,places.rating,places.types,places.formattedAddress',
+    },
+    body: JSON.stringify({
+      includedTypes: [placeType],
+      maxResultCount: 20,
+      locationRestriction: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: radiusMeters,
+        },
+      },
+    }),
+  })
+  if (!res.ok) {
+    console.error('[lookup-property] Places API HTTP error:', res.status, 'type:', placeType)
+    return []
   }
-  return data.results || []
+  const data = await res.json() as { places?: PlacesResult[]; error?: { status: string; message: string } }
+  if (data.error) {
+    console.error('[lookup-property] Places API error:', data.error.status, data.error.message, 'type:', placeType)
+  }
+  return data.places || []
 }
 
 function topPlaces(results: PlacesResult[], lat: number, lng: number, limit = 3): NearbyPlace[] {
   return results
     .map(r => ({
-      name: r.name,
-      distanceMi: r.geometry
-        ? Math.round(distanceMi(lat, lng, r.geometry.location.lat, r.geometry.location.lng) * 10) / 10
+      name: r.displayName?.text || 'Unknown',
+      distanceMi: r.location
+        ? Math.round(distanceMi(lat, lng, r.location.latitude, r.location.longitude) * 10) / 10
         : 999,
       rating: r.rating,
     }))
@@ -244,7 +263,7 @@ Deno.serve(async (req: Request) => {
         primarySchoolResults,
         secondarySchoolResults,
       ] = await Promise.all([
-        fetchPlaces(lat, lng, 'grocery_or_supermarket', RADIUS, googleKey),
+        fetchPlaces(lat, lng, 'grocery_store', RADIUS, googleKey),
         fetchPlaces(lat, lng, 'pharmacy', RADIUS, googleKey),
         fetchPlaces(lat, lng, 'park', RADIUS, googleKey),
         fetchPlaces(lat, lng, 'restaurant', RADIUS, googleKey),
@@ -257,7 +276,7 @@ Deno.serve(async (req: Request) => {
       // Merge and deduplicate schools by name (case-insensitive)
       const seenSchools = new Set<string>()
       const dedupedSchools = [...schoolResults, ...primarySchoolResults, ...secondarySchoolResults].filter(r => {
-        const key = r.name.toLowerCase()
+        const key = (r.displayName?.text || '').toLowerCase()
         if (seenSchools.has(key)) return false
         seenSchools.add(key)
         return true
@@ -313,11 +332,11 @@ Deno.serve(async (req: Request) => {
         shopping: topPlaces(shoppingResults, lat, lng, 2),
         schools: dedupedSchools
           .map(r => ({
-            name: r.name,
-            distanceMi: r.geometry
-              ? Math.round(distanceMi(lat, lng, r.geometry.location.lat, r.geometry.location.lng) * 10) / 10
+            name: r.displayName?.text || 'Unknown',
+            distanceMi: r.location
+              ? Math.round(distanceMi(lat, lng, r.location.latitude, r.location.longitude) * 10) / 10
               : 999,
-            vicinity: r.vicinity,
+            vicinity: r.formattedAddress,
             types: r.types,
           }))
           .sort((a, b) => a.distanceMi - b.distanceMi)
