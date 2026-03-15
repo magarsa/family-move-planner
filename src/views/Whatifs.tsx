@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Loader2, Save, Trash2, AlertTriangle } from 'lucide-react'
+import { Plus, Loader2, Save, Trash2, AlertTriangle, Pencil, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -33,6 +33,11 @@ function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
   const [saving, setSaving] = useState(false)
   const status = item.status as WIStatus
 
+  // Scenario inline edit
+  const [editingScenario, setEditingScenario] = useState(false)
+  const [editScenario, setEditScenario] = useState(item.scenario)
+  const [savingScenario, setSavingScenario] = useState(false)
+
   async function setStatus(s: WIStatus) {
     const patch = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(item.id, patch)
@@ -54,6 +59,16 @@ function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
     setDirty(false)
   }
 
+  async function saveScenario() {
+    if (!editScenario.trim()) return
+    setSavingScenario(true)
+    const patch = { scenario: editScenario.trim(), updated_by: userName, updated_at: new Date().toISOString() }
+    onUpdate(item.id, patch)
+    await supabase.from('whatifs').update(patch).eq('id', item.id)
+    setSavingScenario(false)
+    setEditingScenario(false)
+  }
+
   return (
     <motion.div
       layout
@@ -64,14 +79,51 @@ function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-2.5 flex-1 min-w-0">
           <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${STATUS_STYLES[status].dot}`} />
-          <p className="text-sm font-medium text-stone-800 leading-relaxed">{item.scenario}</p>
+          {editingScenario ? (
+            <div className="flex-1 space-y-1.5">
+              <input
+                autoFocus
+                value={editScenario}
+                onChange={e => setEditScenario(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveScenario(); if (e.key === 'Escape') setEditingScenario(false) }}
+                className="input-field text-sm w-full"
+              />
+              <div className="flex gap-2">
+                <button onClick={saveScenario} disabled={savingScenario || !editScenario.trim()} className="btn-primary text-xs py-1 px-2.5">
+                  {savingScenario ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />} Save
+                </button>
+                <button onClick={() => setEditingScenario(false)} className="btn-ghost text-xs py-1 px-2.5">
+                  <X size={11} /> Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p
+              className="text-sm font-medium text-stone-800 leading-relaxed flex-1 cursor-text"
+              onDoubleClick={() => setEditingScenario(true)}
+              title="Double-click to edit"
+            >
+              {item.scenario}
+            </p>
+          )}
         </div>
-        <button
-          onClick={() => onDelete(item.id)}
-          className="p-1.5 text-stone-300 hover:text-red-400 transition-colors flex-shrink-0"
-        >
-          <Trash2 size={14} />
-        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {!editingScenario && (
+            <button
+              onClick={() => setEditingScenario(true)}
+              className="p-1.5 text-stone-300 hover:text-teal-500 transition-colors"
+              title="Edit scenario"
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+          <button
+            onClick={() => onDelete(item.id)}
+            className="p-1.5 text-stone-300 hover:text-red-400 transition-colors"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Linked decision dropdown */}

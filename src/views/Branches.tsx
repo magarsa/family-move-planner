@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save, Home, Plus, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save, Home, Plus, X, Pencil } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -40,6 +40,12 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
   const [dirty, setDirty] = useState(false)
   const [linkedProperties, setLinkedProperties] = useState<PropertyRow[]>([])
 
+  // Title / description edit
+  const [editingHeader, setEditingHeader] = useState(false)
+  const [editTitle, setEditTitle] = useState(branch.title)
+  const [editDesc, setEditDesc] = useState(branch.description || '')
+  const [savingHeader, setSavingHeader] = useState(false)
+
   useEffect(() => {
     if (!open) return
     supabase
@@ -72,6 +78,21 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
     await supabase.from('branches').update(patch).eq('id', branch.id)
   }
 
+  async function saveHeader() {
+    if (!editTitle.trim()) return
+    setSavingHeader(true)
+    const patch = {
+      title: editTitle.trim(),
+      description: editDesc || null,
+      updated_by: userName,
+      updated_at: new Date().toISOString(),
+    }
+    onUpdate(branch.id, patch)
+    await supabase.from('branches').update(patch).eq('id', branch.id)
+    setSavingHeader(false)
+    setEditingHeader(false)
+  }
+
   return (
     <div className={`card overflow-hidden transition-shadow ${open ? 'shadow-md' : ''}`}>
       {/* Header row */}
@@ -101,10 +122,42 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
             className="overflow-hidden"
           >
             <div className="border-t border-stone-100 px-5 py-5 space-y-5">
-              {/* Description */}
-              {branch.description && (
-                <p className="text-sm text-stone-600 leading-relaxed italic">{branch.description}</p>
-              )}
+              {/* Title / Description edit */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Decision Details</div>
+                  <button
+                    onClick={() => setEditingHeader(!editingHeader)}
+                    className="flex items-center gap-1 text-xs text-stone-400 hover:text-teal-600 transition-colors"
+                  >
+                    {editingHeader ? <><X size={11} /> Cancel</> : <><Pencil size={11} /> Edit</>}
+                  </button>
+                </div>
+                {editingHeader ? (
+                  <div className="space-y-2">
+                    <input
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      placeholder="Decision title"
+                      className="input-field text-sm font-semibold"
+                    />
+                    <input
+                      value={editDesc}
+                      onChange={e => setEditDesc(e.target.value)}
+                      placeholder="Brief description (optional)"
+                      className="input-field text-sm"
+                    />
+                    <button onClick={saveHeader} disabled={savingHeader || !editTitle.trim()} className="btn-primary">
+                      {savingHeader ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      Save
+                    </button>
+                  </div>
+                ) : (
+                  branch.description && (
+                    <p className="text-sm text-stone-600 leading-relaxed italic">{branch.description}</p>
+                  )
+                )}
+              </div>
 
               {/* Status selector */}
               <div>

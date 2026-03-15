@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Plus, Check, Trash2, Loader2 } from 'lucide-react'
+import { Plus, Check, Trash2, Loader2, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -27,6 +27,8 @@ export default function Todos() {
   const [adding, setAdding] = useState<AddingState | null>(null)
   const [saving, setSaving] = useState(false)
   const addInputRef = useRef<HTMLInputElement>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
 
   async function fetchTodos() {
     const { data } = await supabase
@@ -92,6 +94,18 @@ export default function Todos() {
     await supabase.from('todos').delete().eq('id', id)
   }
 
+  function startEdit(todo: TodoRow) {
+    setEditingId(todo.id)
+    setEditText(todo.text)
+  }
+
+  async function saveEdit(id: string) {
+    if (!editText.trim()) { setEditingId(null); return }
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, text: editText.trim() } : t))
+    setEditingId(null)
+    await supabase.from('todos').update({ text: editText.trim() }).eq('id', id)
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -154,7 +168,34 @@ export default function Todos() {
                         onClick={() => toggleTodo(todo)}
                         className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${tier.ring} border-stone-300 hover:border-teal-500`}
                       />
-                      <span className="flex-1 text-sm text-stone-800 leading-relaxed">{todo.text}</span>
+                      {editingId === todo.id ? (
+                        <input
+                          autoFocus
+                          value={editText}
+                          onChange={e => setEditText(e.target.value)}
+                          onBlur={() => saveEdit(todo.id)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') saveEdit(todo.id)
+                            if (e.key === 'Escape') setEditingId(null)
+                          }}
+                          className="flex-1 px-2 py-0.5 text-sm bg-white border border-teal-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                        />
+                      ) : (
+                        <span
+                          className="flex-1 text-sm text-stone-800 leading-relaxed cursor-text"
+                          onDoubleClick={() => startEdit(todo)}
+                          title="Double-click to edit"
+                        >
+                          {todo.text}
+                        </span>
+                      )}
+                      <button
+                        onClick={() => startEdit(todo)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-teal-500 transition-all"
+                        title="Edit"
+                      >
+                        <Pencil size={13} />
+                      </button>
                       <button
                         onClick={() => deleteTodo(todo.id)}
                         className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-400 transition-all"

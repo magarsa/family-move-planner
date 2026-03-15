@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Minus, Circle, GraduationCap, Loader2, Save, Trash2, Plus, X, ExternalLink } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Minus, Circle, GraduationCap, Loader2, Save, Trash2, Plus, X, ExternalLink, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -8,6 +8,9 @@ import type { Tables } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
+
+import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
+import type { MetroFilter } from '../lib/metroAreas'
 
 type SchoolRow = Tables<'schools'>
 
@@ -20,31 +23,6 @@ const STATUS_STYLES: Record<SchoolStatus, { badge: string; icon: ReactNode; labe
   'Top Choice':  { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',     icon: <Check size={12} />,  label: 'Top Choice' },
   'Ruled Out':   { badge: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',         icon: <X size={12} />,      label: 'Ruled Out' },
 }
-
-const METRO_AREAS: Record<string, string[]> = {
-  Charlotte: [
-    'Fort Mill, SC', 'Tega Cay, SC', 'Clover, SC', 'Lake Wylie, SC', 'Indian Land, SC',
-    'Waxhaw, NC', 'Huntersville, NC', 'Concord, NC', 'Monroe, NC', 'Mooresville, NC',
-  ],
-  'Greenville SC': [
-    'Greenville, SC', 'Simpsonville, SC', 'Mauldin, SC', 'Greer, SC',
-    'Taylors, SC', 'Fountain Inn, SC', 'Powdersville, SC',
-  ],
-  'Raleigh NC': [
-    'Raleigh, NC', 'Cary, NC', 'Apex, NC', 'Morrisville, NC', 'Wake Forest, NC',
-    'Holly Springs, NC', 'Fuquay-Varina, NC', 'Durham, NC', 'Chapel Hill, NC',
-  ],
-}
-
-const AREA_OPTIONS = [
-  ...METRO_AREAS['Charlotte'],
-  ...METRO_AREAS['Greenville SC'],
-  ...METRO_AREAS['Raleigh NC'],
-  'Other',
-]
-
-const METRO_FILTERS = ['All', 'Charlotte', 'Greenville SC', 'Raleigh NC'] as const
-type MetroFilter = typeof METRO_FILTERS[number]
 
 const GRADE_LEVELS: SchoolLevel[] = ['K-5', '6-8', '9-12', 'K-8', 'K-12', 'Other']
 const SCHOOL_TYPES = ['Public', 'Private', 'Charter', 'Magnet']
@@ -75,6 +53,15 @@ function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete 
   const [dirty, setDirty] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Core field editing
+  const [editingCore, setEditingCore] = useState(false)
+  const [editName, setEditName] = useState(school.name)
+  const [editDistrict, setEditDistrict] = useState(school.district || '')
+  const [editArea, setEditArea] = useState(school.area || '')
+  const [editGrades, setEditGrades] = useState(school.grades || '')
+  const [editSchoolType, setEditSchoolType] = useState(school.school_type || '')
+  const [savingCore, setSavingCore] = useState(false)
+
   const status = (school.status || 'Researching') as SchoolStatus
   const style = STATUS_STYLES[status]
   const analysis = school.ai_analysis as unknown as AiAnalysis | null
@@ -91,6 +78,24 @@ function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete 
     await supabase.from('schools').update(patch).eq('id', school.id)
     setSaving(false)
     setDirty(false)
+  }
+
+  async function saveCore() {
+    if (!editName.trim()) return
+    setSavingCore(true)
+    const patch: Partial<SchoolRow> = {
+      name: editName.trim(),
+      district: editDistrict || null,
+      area: editArea || null,
+      grades: editGrades || null,
+      school_type: editSchoolType || null,
+      updated_by: userName,
+      updated_at: new Date().toISOString(),
+    }
+    onUpdate(school.id, patch)
+    await supabase.from('schools').update(patch).eq('id', school.id)
+    setSavingCore(false)
+    setEditingCore(false)
   }
 
   async function setStatus(s: SchoolStatus) {
@@ -156,26 +161,79 @@ function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete 
             className="overflow-hidden"
           >
             <div className="border-t border-stone-100 dark:border-stone-700 px-5 py-5 space-y-5">
-              {/* Detail chips */}
-              <div className="flex flex-wrap gap-2">
-                {school.grades && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📚 {school.grades}</span>}
-                {school.school_type && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🏫 {school.school_type}</span>}
-                {school.area && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📍 {school.area}</span>}
-                {school.greatschools_url && (
-                  <a
-                    href={school.greatschools_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="status-badge bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1 hover:opacity-80"
+              {/* School details — view or edit */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">School Details</div>
+                  <button
+                    onClick={() => setEditingCore(!editingCore)}
+                    className="flex items-center gap-1 text-xs text-stone-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
                   >
-                    <ExternalLink size={10} /> GreatSchools
-                  </a>
-                )}
-                {linkedPropertyCount > 0 && (
-                  <span className="status-badge bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
-                    🏠 Near {linkedPropertyCount} propert{linkedPropertyCount === 1 ? 'y' : 'ies'}
-                  </span>
+                    {editingCore ? <><X size={11} /> Cancel</> : <><Pencil size={11} /> Edit</>}
+                  </button>
+                </div>
+                {editingCore ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">School Name</label>
+                      <input value={editName} onChange={e => setEditName(e.target.value)} className="input-field mt-1 text-sm" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">District</label>
+                        <input value={editDistrict} onChange={e => setEditDistrict(e.target.value)} placeholder="Fort Mill School District" className="input-field mt-1 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Area</label>
+                        <select value={editArea} onChange={e => setEditArea(e.target.value)} className="input-field mt-1 text-sm">
+                          <option value="">— Select area —</option>
+                          {AREA_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Grades</label>
+                        <select value={editGrades} onChange={e => setEditGrades(e.target.value)} className="input-field mt-1 text-sm">
+                          <option value="">— Select —</option>
+                          {GRADE_LEVELS.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Type</label>
+                        <select value={editSchoolType} onChange={e => setEditSchoolType(e.target.value)} className="input-field mt-1 text-sm">
+                          <option value="">— Select —</option>
+                          {SCHOOL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <button onClick={saveCore} disabled={savingCore || !editName.trim()} className="btn-primary">
+                      {savingCore ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      Save details
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {school.grades && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📚 {school.grades}</span>}
+                    {school.school_type && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🏫 {school.school_type}</span>}
+                    {school.area && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📍 {school.area}</span>}
+                    {school.greatschools_url && (
+                      <a
+                        href={school.greatschools_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="status-badge bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center gap-1 hover:opacity-80"
+                      >
+                        <ExternalLink size={10} /> GreatSchools
+                      </a>
+                    )}
+                    {linkedPropertyCount > 0 && (
+                      <span className="status-badge bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400">
+                        🏠 Near {linkedPropertyCount} propert{linkedPropertyCount === 1 ? 'y' : 'ies'}
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
 

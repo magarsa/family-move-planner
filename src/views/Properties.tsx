@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Trash2, Plus, X, ExternalLink, Calendar } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Trash2, Plus, X, ExternalLink, Calendar, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -10,6 +10,8 @@ import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
 import { lookupProperty } from '../lib/lookupProperty'
 import type { ProximityData, NearbySchool } from '../lib/lookupProperty'
+import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
+import type { MetroFilter } from '../lib/metroAreas'
 
 type PropertyRow = Tables<'properties'>
 type BranchRow = Tables<'branches'>
@@ -25,32 +27,6 @@ const STATUS_STYLES: Record<PropertyStatus, { badge: string; icon: ReactNode; la
   'Ruled Out':       { badge: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',         icon: <X size={12} />,        label: 'Ruled Out' },
   'Secured':         { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',     icon: <Check size={12} />,    label: 'Secured' },
 }
-
-// Metro area groupings for filtering
-const METRO_AREAS: Record<string, string[]> = {
-  Charlotte: [
-    'Fort Mill, SC', 'Tega Cay, SC', 'Clover, SC', 'Lake Wylie, SC', 'Indian Land, SC',
-    'Waxhaw, NC', 'Huntersville, NC', 'Concord, NC', 'Monroe, NC', 'Mooresville, NC',
-  ],
-  'Greenville SC': [
-    'Greenville, SC', 'Simpsonville, SC', 'Mauldin, SC', 'Greer, SC',
-    'Taylors, SC', 'Fountain Inn, SC', 'Powdersville, SC',
-  ],
-  'Raleigh NC': [
-    'Raleigh, NC', 'Cary, NC', 'Apex, NC', 'Morrisville, NC', 'Wake Forest, NC',
-    'Holly Springs, NC', 'Fuquay-Varina, NC', 'Durham, NC', 'Chapel Hill, NC',
-  ],
-}
-
-const AREA_OPTIONS = [
-  ...METRO_AREAS['Charlotte'],
-  ...METRO_AREAS['Greenville SC'],
-  ...METRO_AREAS['Raleigh NC'],
-  'Other',
-]
-
-const METRO_FILTERS = ['All', 'Charlotte', 'Greenville SC', 'Raleigh NC'] as const
-type MetroFilter = typeof METRO_FILTERS[number]
 
 function formatPrice(price: number | null) {
   if (!price) return null
@@ -212,6 +188,17 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const [saving, setSaving] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Core field editing
+  const [editingCore, setEditingCore] = useState(false)
+  const [editAddress, setEditAddress] = useState(property.address)
+  const [editArea, setEditArea] = useState(property.area || '')
+  const [editPrice, setEditPrice] = useState(property.price ? String(property.price) : '')
+  const [editBeds, setEditBeds] = useState(property.beds ? String(property.beds) : '')
+  const [editBaths, setEditBaths] = useState(property.baths ? String(property.baths) : '')
+  const [editSqft, setEditSqft] = useState(property.sqft ? String(property.sqft) : '')
+  const [editZillowUrl, setEditZillowUrl] = useState(property.zillow_url || '')
+  const [savingCore, setSavingCore] = useState(false)
   const [linkedSchools, setLinkedSchools] = useState<SchoolRow[]>([])
   const [schoolsLoaded, setSchoolsLoaded] = useState(false)
   const [loadingSnapshot, setLoadingSnapshot] = useState(false)
@@ -232,6 +219,26 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
     await supabase.from('properties').update(patch).eq('id', property.id)
     setSaving(false)
     setDirty(false)
+  }
+
+  async function saveCore() {
+    if (!editAddress.trim()) return
+    setSavingCore(true)
+    const patch: Partial<PropertyRow> = {
+      address: editAddress.trim(),
+      area: editArea || null,
+      price: editPrice ? parseInt(editPrice.replace(/\D/g, '')) : null,
+      beds: editBeds ? parseInt(editBeds) : null,
+      baths: editBaths ? parseFloat(editBaths) : null,
+      sqft: editSqft ? parseInt(editSqft.replace(/\D/g, '')) : null,
+      zillow_url: editZillowUrl || null,
+      updated_by: userName,
+      updated_at: new Date().toISOString(),
+    }
+    onUpdate(property.id, patch)
+    await supabase.from('properties').update(patch).eq('id', property.id)
+    setSavingCore(false)
+    setEditingCore(false)
   }
 
   async function setStatus(s: PropertyStatus) {
@@ -402,21 +409,76 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
             className="overflow-hidden"
           >
             <div className="border-t border-stone-100 dark:border-stone-700 px-5 py-5 space-y-5">
-              {/* Property details chips */}
-              <div className="flex flex-wrap gap-2">
-                {property.price && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">💰 {formatPrice(property.price)}</span>}
-                {property.beds && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🛏 {property.beds} bed</span>}
-                {property.baths && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🚿 {property.baths} bath</span>}
-                {property.sqft && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📐 {property.sqft.toLocaleString()} sqft</span>}
-                <a
-                  href={buildZillowUrl(property)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={e => e.stopPropagation()}
-                  className="status-badge bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1 hover:opacity-80"
-                >
-                  <ExternalLink size={10} /> Zillow
-                </a>
+              {/* Property details — view or edit */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide">Property Details</div>
+                  <button
+                    onClick={() => setEditingCore(!editingCore)}
+                    className="flex items-center gap-1 text-xs text-stone-400 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
+                  >
+                    {editingCore ? <><X size={11} /> Cancel</> : <><Pencil size={11} /> Edit</>}
+                  </button>
+                </div>
+                {editingCore ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Address</label>
+                      <input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="input-field mt-1 text-sm" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Area</label>
+                        <select value={editArea} onChange={e => setEditArea(e.target.value)} className="input-field mt-1 text-sm">
+                          <option value="">— Select area —</option>
+                          {AREA_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Asking Price</label>
+                        <input value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="$525,000" className="input-field mt-1 text-sm" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Beds</label>
+                        <input type="number" min="0" value={editBeds} onChange={e => setEditBeds(e.target.value)} placeholder="4" className="input-field mt-1 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Baths</label>
+                        <input type="number" min="0" step="0.5" value={editBaths} onChange={e => setEditBaths(e.target.value)} placeholder="2.5" className="input-field mt-1 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Sq Ft</label>
+                        <input value={editSqft} onChange={e => setEditSqft(e.target.value)} placeholder="2,400" className="input-field mt-1 text-sm" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-500 uppercase tracking-wide">Zillow URL</label>
+                      <input type="url" value={editZillowUrl} onChange={e => setEditZillowUrl(e.target.value)} placeholder="https://zillow.com/..." className="input-field mt-1 text-sm" />
+                    </div>
+                    <button onClick={saveCore} disabled={savingCore || !editAddress.trim()} className="btn-primary">
+                      {savingCore ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                      Save details
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {property.price && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">💰 {formatPrice(property.price)}</span>}
+                    {property.beds && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🛏 {property.beds} bed</span>}
+                    {property.baths && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">🚿 {property.baths} bath</span>}
+                    {property.sqft && <span className="status-badge bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300">📐 {property.sqft.toLocaleString()} sqft</span>}
+                    <a
+                      href={buildZillowUrl(property)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="status-badge bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 flex items-center gap-1 hover:opacity-80"
+                    >
+                      <ExternalLink size={10} /> Zillow
+                    </a>
+                  </div>
+                )}
               </div>
 
               {/* Status selector */}
