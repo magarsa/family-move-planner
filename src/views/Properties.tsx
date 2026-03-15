@@ -167,6 +167,188 @@ function AreaSnapshot({ proximity }: { proximity: ProximityData }) {
   )
 }
 
+// ─── Nearby Schools panel ─────────────────────────────────────────────────────
+
+function gradeColor(g: string) {
+  return g === 'A' ? 'bg-green-500' : g === 'B' ? 'bg-lime-500' : g === 'C' ? 'bg-yellow-500' : g === 'D' ? 'bg-orange-500' : 'bg-red-500'
+}
+
+function schoolLevel(school: SchoolRow, types?: string[]): string {
+  if (school.grades === 'K-5')  return 'Elementary'
+  if (school.grades === '6-8')  return 'Middle'
+  if (school.grades === '9-12') return 'High School'
+  if (school.grades === 'K-8')  return 'K–8'
+  if (school.grades === 'K-12') return 'K–12'
+  if (types) {
+    if (types.some(t => t.includes('elementary')))            return 'Elementary'
+    if (types.some(t => t.includes('middle') || t.includes('junior'))) return 'Middle'
+    if (types.some(t => t.includes('high') || t.includes('secondary'))) return 'High School'
+  }
+  return 'Other'
+}
+
+function levelEmoji(l: string) {
+  return l === 'Elementary' ? '🎒' : l === 'Middle' ? '📚' : l === 'High School' ? '🎓' : '🏫'
+}
+
+const LEVEL_ORDER = ['Elementary', 'Middle', 'High School', 'K–8', 'K–12', 'Other']
+
+interface EnrichedSchool { school: SchoolRow; distanceMi: number | null }
+
+interface SchoolGroupProps {
+  level: string
+  items: EnrichedSchool[]
+  onNavigate: (id: string) => void
+  onUnlink: (id: string) => void
+}
+
+function SchoolGroup({ level, items, onNavigate, onUnlink }: SchoolGroupProps) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="border border-stone-100 dark:border-stone-700 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2 bg-stone-50 dark:bg-stone-800/60 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">
+            {levelEmoji(level)} {level}
+          </span>
+          <span className="text-xs text-stone-400 dark:text-stone-500 bg-stone-200 dark:bg-stone-700 px-1.5 py-0.5 rounded-full">{items.length}</span>
+        </div>
+        {open ? <ChevronUp size={13} className="text-stone-400" /> : <ChevronDown size={13} className="text-stone-400" />}
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            <div className="divide-y divide-stone-50 dark:divide-stone-800">
+              {items.map(({ school, distanceMi }) => {
+                const analysis = school.ai_analysis as unknown as AiAnalysis | null
+                return (
+                  <div key={school.id} className="flex items-center gap-2 px-3 py-2.5 group hover:bg-stone-50 dark:hover:bg-stone-800/40 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-stone-700 dark:text-stone-200 truncate">{school.name}</div>
+                      {(school.district || school.school_type) && (
+                        <div className="text-xs text-stone-400 dark:text-stone-500 truncate">
+                          {[school.district, school.school_type].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                    {distanceMi !== null && (
+                      <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0 tabular-nums">{distanceMi} mi</span>
+                    )}
+                    {analysis?.overallGrade ? (
+                      <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-xs font-bold font-serif flex-shrink-0 ${gradeColor(analysis.overallGrade)}`}>
+                        {analysis.overallGrade}
+                      </span>
+                    ) : (
+                      <span className="w-5 h-5 flex-shrink-0" />
+                    )}
+                    <button
+                      onClick={() => onNavigate(school.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-teal-500 transition-all flex-shrink-0"
+                      title="View school record"
+                    >
+                      <ExternalLink size={11} />
+                    </button>
+                    <button
+                      onClick={() => onUnlink(school.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-400 transition-all flex-shrink-0"
+                      title="Remove link"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+interface NearbySchoolsPanelProps {
+  linkedSchools: SchoolRow[]
+  proximitySchools: NearbySchool[]
+  allSchools: SchoolRow[]
+  onNavigate: (id: string) => void
+  onUnlink: (id: string) => void
+  onLink: (id: string) => void
+}
+
+function NearbySchoolsPanel({ linkedSchools, proximitySchools, allSchools, onNavigate, onUnlink, onLink }: NearbySchoolsPanelProps) {
+  // Enrich each linked school with distance + level derived from proximity data
+  const enriched: EnrichedSchool[] = linkedSchools.map(school => {
+    const nearby = proximitySchools.find(n => n.name.toLowerCase() === school.name.toLowerCase())
+    return { school, distanceMi: nearby?.distanceMi ?? null }
+  })
+
+  // Group by level
+  const groups: Record<string, EnrichedSchool[]> = {}
+  for (const e of enriched) {
+    const nearby = proximitySchools.find(n => n.name.toLowerCase() === e.school.name.toLowerCase())
+    const level = schoolLevel(e.school, nearby?.types)
+    if (!groups[level]) groups[level] = []
+    groups[level].push(e)
+  }
+
+  // Sort each group by distance (nulls last)
+  for (const g of Object.values(groups)) {
+    g.sort((a, b) => {
+      if (a.distanceMi === null && b.distanceMi === null) return 0
+      if (a.distanceMi === null) return 1
+      if (b.distanceMi === null) return -1
+      return a.distanceMi - b.distanceMi
+    })
+  }
+
+  const sortedGroups = [
+    ...LEVEL_ORDER.filter(l => groups[l]).map(l => ({ level: l, items: groups[l] })),
+    ...Object.keys(groups).filter(l => !LEVEL_ORDER.includes(l)).map(l => ({ level: l, items: groups[l] })),
+  ]
+
+  const unlinkable = new Set(linkedSchools.map(s => s.id))
+  const linkable = allSchools.filter(s => !unlinkable.has(s.id))
+
+  if (linkedSchools.length === 0 && linkable.length === 0) {
+    return <p className="text-xs text-stone-400 dark:text-stone-500">No schools linked yet.</p>
+  }
+
+  return (
+    <div className="space-y-2">
+      {linkedSchools.length === 0 && (
+        <p className="text-xs text-stone-400 dark:text-stone-500">No schools linked yet.</p>
+      )}
+      {sortedGroups.map(g => (
+        <SchoolGroup key={g.level} level={g.level} items={g.items} onNavigate={onNavigate} onUnlink={onUnlink} />
+      ))}
+      {linkable.length > 0 && (
+        <select
+          value=""
+          onChange={e => { if (e.target.value) onLink(e.target.value) }}
+          className="input-field text-sm mt-1"
+        >
+          <option value="">+ Link a school…</option>
+          {linkable.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.name}{s.school_type ? ` (${s.school_type})` : ''}{s.area ? ` — ${s.area}` : ''}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  )
+}
+
 // ─── PropertyCard ────────────────────────────────────────────────────────────
 
 interface PropertyCardProps {
@@ -554,52 +736,14 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                 <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
                   <GraduationCap size={12} /> Nearby Schools
                 </div>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {linkedSchools.map(school => (
-                    <span
-                      key={school.id}
-                      className="inline-flex items-center gap-1.5 text-xs bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 px-2 py-1 rounded-lg"
-                    >
-                      <span>{school.name}</span>
-                      {school.school_type && (
-                        <span className="opacity-60">· {school.school_type}</span>
-                      )}
-                      <button
-                        onClick={() => navigate(`/schools?open=${school.id}`)}
-                        className="ml-0.5 hover:text-teal-500 transition-colors"
-                        title="View school record"
-                      >
-                        <ExternalLink size={10} />
-                      </button>
-                      <button
-                        onClick={() => unlinkSchool(school.id)}
-                        className="hover:text-red-400 transition-colors"
-                        title="Remove link"
-                      >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
-                  {linkedSchools.length === 0 && schoolsLoaded && (
-                    <span className="text-xs text-stone-400 dark:text-stone-500">No schools linked yet</span>
-                  )}
-                </div>
-                {schools.filter(s => !linkedSchools.find(l => l.id === s.id)).length > 0 && (
-                  <select
-                    value=""
-                    onChange={e => { if (e.target.value) linkSchool(e.target.value) }}
-                    className="input-field text-sm"
-                  >
-                    <option value="">+ Link a school…</option>
-                    {schools
-                      .filter(s => !linkedSchools.find(l => l.id === s.id))
-                      .map(s => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}{s.school_type ? ` (${s.school_type})` : ''}{s.area ? ` — ${s.area}` : ''}
-                        </option>
-                      ))}
-                  </select>
-                )}
+                <NearbySchoolsPanel
+                  linkedSchools={linkedSchools}
+                  proximitySchools={(property.proximity as unknown as ProximityData | null)?.schools ?? []}
+                  allSchools={schools}
+                  onNavigate={id => navigate(`/schools?open=${id}`)}
+                  onUnlink={unlinkSchool}
+                  onLink={linkSchool}
+                />
               </div>
 
               {/* Link to decision branch */}
