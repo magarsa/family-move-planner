@@ -54,6 +54,30 @@ function toSnippet(plain: string | null, html: string | null, maxLen = 600): str
   return src.length > maxLen ? src.slice(0, maxLen) + '…' : src
 }
 
+/**
+ * Parse a forwarded email body for the original sender's email address.
+ * Handles Gmail ("---------- Forwarded message ---------\nFrom: ...")
+ * and Outlook ("-----Original Message-----\nFrom: ...") formats.
+ * Returns the extracted email, or null if not found.
+ */
+function extractForwardedFrom(body: string): string | null {
+  // Gmail / standard forwarded block — look for "From:" line after the divider
+  const m = body.match(
+    /(?:forwarded message|original message)[^\n]*\n(?:[^\n]*\n)*?from:\s*([^\n]+)/i
+  )
+  if (m) {
+    const email = extractEmail(m[1].trim())
+    if (email.includes('@')) return email
+  }
+  // Fallback: bare "> From:" line in a quoted reply
+  const m2 = body.match(/^>?\s*from:\s*([^\n]+)/im)
+  if (m2) {
+    const email = extractEmail(m2[1].trim())
+    if (email.includes('@') && !email.endsWith('@cloudmailin.net')) return email
+  }
+  return null
+}
+
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -91,12 +115,17 @@ Deno.serve(async (req: Request) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  const senderRaw    = payload.headers.from ?? ''
-  const senderEmail  = extractEmail(senderRaw)
-  const senderName   = extractName(senderRaw)
-  const senderDomain = emailDomain(senderEmail)
-  const subject      = payload.headers.subject?.trim() ?? '(no subject)'
-  const snippet      = toSnippet(payload.plain, payload.html)
+  const senderRaw   = payload.headers.from ?? ''
+  const senderEmail = extractEmail(senderRaw)
+  const senderName  = extractName(senderRaw)
+  const subject     = payload.headers.subject?.trim() ?? '(no subject)'
+  const snippet     = toSnippet(payload.plain, payload.html)
+
+  // Detect forwarded email — use original sender as the primary match target
+  const bodyText       = payload.plain ?? payload.html?.replace(/<[^>]+>/g, ' ') ?? ''
+  const forwardedEmail = extractForwardedFrom(bodyText)
+  const targetEmail    = forwardedEmail ?? senderEmail
+  const targetDomain   = emailDomain(targetEmail)
 
   // ── 1. Try to match a contact ────────────────────────────────────────────
 
@@ -108,23 +137,23 @@ Deno.serve(async (req: Request) => {
   let matchMethod = ''
 
   if (contacts && contacts.length > 0) {
-    // Exact email match (case-insensitive)
+    // Exact email match against the target (forwarded-from if available, else envelope sender)
     const exact = contacts.find(
-      c => c.email && extractEmail(c.email) === senderEmail
+      c => c.email && extractEmail(c.email) === targetEmail
     )
     if (exact) {
       matchedContactId = exact.id
-      matchMethod = 'exact email match'
+      matchMethod = forwardedEmail ? 'forwarded-from exact' : 'exact email match'
     }
 
-    // Domain match — same @domain as a contact's email
-    if (!matchedContactId && senderDomain) {
+    // Domain match
+    if (!matchedContactId && targetDomain) {
       const domainMatch = contacts.find(
-        c => c.email && emailDomain(extractEmail(c.email)) === senderDomain
+        c => c.email && emailDomain(extractEmail(c.email)) === targetDomain
       )
       if (domainMatch) {
         matchedContactId = domainMatch.id
-        matchMethod = 'email domain match'
+        matchMethod = forwardedEmail ? 'forwarded-from domain' : 'email domain match'
       }
     }
   }
@@ -132,12 +161,12 @@ Deno.serve(async (req: Request) => {
   // ── 2. If no match, create a new contact ─────────────────────────────────
 
   if (!matchedContactId) {
-    const newName = senderName || senderEmail
+    const newName = senderName || targetEmail
     const { data: newContact, error: createErr } = await supabase
       .from('contacts')
       .insert({
         name:     newName,
-        email:    senderEmail,
+        email:    targetEmail,
         status:   'Prospect',
         added_by: 'inbound-email',
         notes:    `Auto-created from inbound email on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
