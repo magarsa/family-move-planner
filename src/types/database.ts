@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      offers: {
+        Row: {
+          id:            string
+          property_id:   string
+          offer_date:    string
+          amount:        number
+          status:        string
+          contingencies: string | null
+          expiry_at:     string | null
+          notes:         string | null
+          added_by:      string | null
+          created_at:    string
+          updated_at:    string
+        }
+        Insert: {
+          id?:           string
+          property_id:   string
+          offer_date?:   string
+          amount:        number
+          status?:       string
+          contingencies?:string | null
+          expiry_at?:    string | null
+          notes?:        string | null
+          added_by?:     string | null
+          created_at?:   string
+          updated_at?:   string
+        }
+        Update: {
+          id?:           string
+          property_id?:  string
+          offer_date?:   string
+          amount?:       number
+          status?:       string
+          contingencies?:string | null
+          expiry_at?:    string | null
+          notes?:        string | null
+          added_by?:     string | null
+          created_at?:   string
+          updated_at?:   string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deadlines: {
+        Row: {
+          id:           string
+          title:        string
+          deadline_at:  string
+          category:     string
+          notes:        string | null
+          property_id:  string | null
+          completed:    boolean
+          completed_at: string | null
+          completed_by: string | null
+          added_by:     string | null
+          created_at:   string
+          updated_at:   string
+        }
+        Insert: {
+          id?:          string
+          title:        string
+          deadline_at:  string
+          category?:    string
+          notes?:       string | null
+          property_id?: string | null
+          completed?:   boolean
+          completed_at?:string | null
+          completed_by?:string | null
+          added_by?:    string | null
+          created_at?:  string
+          updated_at?:  string
+        }
+        Update: {
+          id?:          string
+          title?:       string
+          deadline_at?: string
+          category?:    string
+          notes?:       string | null
+          property_id?: string | null
+          completed?:   boolean
+          completed_at?:string | null
+          completed_by?:string | null
+          added_by?:    string | null
+          created_at?:  string
+          updated_at?:  string
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           decision_made: string | null

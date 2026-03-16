@@ -8,6 +8,7 @@ import type { Tables, Json } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
+import OfferTracker from '../components/OfferTracker'
 import { lookupProperty } from '../lib/lookupProperty'
 import type { ProximityData, NearbySchool } from '../lib/lookupProperty'
 import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
@@ -787,6 +788,14 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                     </button>
                   </div>
                 )}
+              </div>
+
+              {/* Offer Tracker */}
+              <div className="border-t border-stone-100 dark:border-stone-700 pt-4">
+                <OfferTracker
+                  propertyId={property.id}
+                  onStatusChange={(status) => onUpdate(property.id, { status: status as PropertyRow['status'] })}
+                />
               </div>
 
               {/* AI Analysis Panel */}
