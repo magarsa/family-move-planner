@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
           // Stream Claude's short analysis (~1000 tokens, ~15-20s)
           const claudeStream = claude.messages.stream({
             model:      "claude-sonnet-4-6",
-            max_tokens: 2000,
+            max_tokens: 1000,
             system,
             messages:   [{ role: "user", content: userMessage }],
           });
@@ -127,26 +127,27 @@ Deno.serve(async (req) => {
             }
           }
 
-          const finalMessage = await claudeStream.finalMessage();
-
           // Append closing HTML
           accumulatedHtml += footer;
           send({ type: "chunk", text: footer });
 
-          // Persist
+          // Signal done to client immediately — DB write must not block this
+          send({ type: "done", reportId });
+          try { controller.close(); } catch { /* already closed */ }
+
+          // Persist in background after client is unblocked
+          const finalMessage = await claudeStream.finalMessage().catch(() => null);
           await supabase
             .from("reports")
             .update({
               status:       "complete",
               html_content: accumulatedHtml,
-              metadata: {
+              metadata: finalMessage ? {
                 input_tokens:  finalMessage.usage.input_tokens,
                 output_tokens: finalMessage.usage.output_tokens,
-              },
+              } : {},
             })
             .eq("id", reportId);
-
-          send({ type: "done", reportId });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           await supabase.from("reports").update({ status: "error", error_message: msg }).eq("id", reportId);
@@ -473,13 +474,35 @@ function buildPrompt(reportType: ReportType, ctx: Context) {
     .map(t => `- ${t.text}`)
     .join("\n") || "None";
 
-  const propLines = ctx.properties.length === 0 ? "None tracked" : ctx.properties
-    .map(p => `- ${p.address}${p.area ? ` (${p.area})` : ""} | ${p.status ?? "?"} | ${fmtPrice(p.price)}${p.notes ? ` | ${p.notes.slice(0, 80)}` : ""}`)
-    .join("\n");
+  const propLines = (() => {
+    if (ctx.properties.length === 0) return "None tracked";
+    const byStatus: Record<string, number> = {};
+    const active: string[] = [];
+    for (const pr of ctx.properties) {
+      const s = pr.status ?? "Researching";
+      byStatus[s] = (byStatus[s] ?? 0) + 1;
+      if (s !== "Ruled Out") {
+        active.push(`- ${pr.address}${pr.area ? ` (${pr.area})` : ""} | ${s} | ${fmtPrice(pr.price)}${pr.notes ? ` | ${pr.notes.slice(0, 60)}` : ""}`);
+      }
+    }
+    const summary = Object.entries(byStatus).map(([k, v]) => `${v} ${k}`).join(", ");
+    return `Total: ${ctx.properties.length} (${summary})\nActive:\n${active.join("\n") || "None"}`;
+  })();
 
-  const schoolLines = ctx.schools.length === 0 ? "None tracked" : ctx.schools
-    .map(s => `- ${s.name}${s.district ? ` (${s.district})` : ""} | ${s.grades ?? "?"} | ${s.status ?? "Researching"}${s.notes ? ` | ${s.notes.slice(0, 60)}` : ""}`)
-    .join("\n");
+  const schoolLines = (() => {
+    if (ctx.schools.length === 0) return "None tracked";
+    const byStatus: Record<string, number> = {};
+    const active: string[] = [];
+    for (const s of ctx.schools) {
+      const st = s.status ?? "Researching";
+      byStatus[st] = (byStatus[st] ?? 0) + 1;
+      if (st !== "Ruled Out") {
+        active.push(`- ${s.name}${s.district ? ` (${s.district})` : ""} | ${s.grades ?? "?"} | ${st}${s.notes ? ` | ${s.notes.slice(0, 50)}` : ""}`);
+      }
+    }
+    const summary = Object.entries(byStatus).map(([k, v]) => `${v} ${k}`).join(", ");
+    return `Total: ${ctx.schools.length} (${summary})\nActive:\n${active.join("\n") || "None"}`;
+  })();
 
   const contactLines = ctx.contacts.length === 0 ? "None" : ctx.contacts
     .map(c => `- ${c.name} | ${c.role ?? "?"}${c.company ? ` @ ${c.company}` : ""}`)
