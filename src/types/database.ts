@@ -104,6 +104,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          parent_id: string | null
           property_id: string | null
           sale_timeline_phase_id: string | null
           sort_order: number | null
@@ -118,6 +119,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          parent_id?: string | null
           property_id?: string | null
           sale_timeline_phase_id?: string | null
           sort_order?: number | null
@@ -132,6 +134,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          parent_id?: string | null
           property_id?: string | null
           sale_timeline_phase_id?: string | null
           sort_order?: number | null
@@ -144,6 +147,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todos_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "todos"
             referencedColumns: ["id"]
           },
           {
