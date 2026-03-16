@@ -12,6 +12,8 @@ import Schools from './views/Schools'
 import Contacts from './views/Contacts'
 import Selling from './views/Selling'
 import Reports from './views/Reports'
+import Communications from './views/Communications'
+import Deadlines from './views/Deadlines'
 import { useUser } from './hooks/useUser'
 import { useTheme } from './hooks/useTheme'
 
@@ -35,6 +37,8 @@ export default function App() {
         <Route path="/properties" element={<Properties />} />
         <Route path="/schools" element={<Schools />} />
         <Route path="/contacts" element={<Contacts />} />
+        <Route path="/comms" element={<Communications />} />
+        <Route path="/deadlines" element={<Deadlines />} />
         <Route path="/selling" element={<Selling />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="*" element={<Navigate to="/" replace />} />

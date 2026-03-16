@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckSquare, GitBranch, HelpCircle, BookOpen, AlertTriangle, ArrowRight, Zap, Home, GraduationCap, Calendar } from 'lucide-react'
+import { CheckSquare, GitBranch, HelpCircle, BookOpen, AlertTriangle, ArrowRight, Zap, Home, GraduationCap, Calendar, Download } from 'lucide-react'
+import { exportMoveCalendar } from '../lib/exportCalendar'
+import FinancialSnapshot from '../components/FinancialSnapshot'
+import DeadlinesWidget from '../components/DeadlinesWidget'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -53,7 +56,7 @@ export default function Dashboard() {
         supabase.from('todos').select('*'),
         supabase.from('branches').select('*'),
         supabase.from('whatifs').select('*'),
-        supabase.from('properties').select('id, address, area, status, visit_at'),
+        supabase.from('properties').select('id, address, area, status, visit_at, price'),
         supabase.from('schools').select('id, name, status'),
         supabase.from('profile').select('key, value'),
       ])
@@ -157,11 +160,22 @@ export default function Dashboard() {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div>
-        <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">
-          Welcome back, {userName} 👋
-        </h1>
-        <p className="text-stone-500 dark:text-stone-400 mt-1">Your family move command center.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">
+            Welcome back, {userName} 👋
+          </h1>
+          <p className="text-stone-500 dark:text-stone-400 mt-1">Your family move command center.</p>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={() => exportMoveCalendar({ properties, profile })}
+          title="Export visits & key dates to Google/Apple Calendar"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-800 text-xs font-medium text-stone-600 dark:text-stone-400 hover:border-teal-400 hover:text-teal-600 dark:hover:border-teal-600 dark:hover:text-teal-400 transition-colors shrink-0"
+        >
+          <Download size={13} />
+          Export Calendar
+        </motion.button>
       </div>
 
       {/* ── SECTION 1: Timeline & Phases ── */}
@@ -273,7 +287,25 @@ export default function Dashboard() {
         </div>
       </motion.div>
 
-      {/* ── SECTION 3: Blockers & Up Next ── */}
+      {/* ── SECTION 3: Financial Snapshot ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+      >
+        <FinancialSnapshot profile={profile} />
+      </motion.div>
+
+      {/* ── SECTION 4: Critical Dates ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.18 }}
+      >
+        <DeadlinesWidget />
+      </motion.div>
+
+      {/* ── SECTION 5: Blockers & Up Next ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Blockers */}
         <motion.div
@@ -370,7 +402,7 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      {/* ── SECTION 4: Properties & Schools ── */}
+      {/* ── SECTION 6: Properties & Schools ── */}
       {(properties.length > 0 || schools.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Upcoming visits */}

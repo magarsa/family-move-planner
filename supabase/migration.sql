@@ -734,3 +734,59 @@ alter table todos
     references todos(id) on delete cascade;
 
 create index if not exists todos_parent_id_idx on todos(parent_id);
+
+-- ============================================================
+-- Critical Dates / Deadlines table
+-- ============================================================
+create table if not exists deadlines (
+  id           uuid primary key default gen_random_uuid(),
+  title        text not null,
+  deadline_at  date not null,
+  category     text not null default 'General',
+  notes        text,
+  property_id  uuid references properties(id) on delete set null,
+  completed    boolean not null default false,
+  completed_at timestamptz,
+  completed_by text,
+  added_by     text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+create index if not exists deadlines_deadline_at_idx on deadlines(deadline_at);
+create index if not exists deadlines_completed_idx   on deadlines(completed);
+create index if not exists deadlines_property_id_idx on deadlines(property_id);
+
+create trigger deadlines_updated_at
+  before update on deadlines
+  for each row execute function update_updated_at();
+
+alter publication supabase_realtime add table deadlines;
+
+-- ============================================================
+-- Offer Tracker table
+-- ============================================================
+create table if not exists offers (
+  id            uuid primary key default gen_random_uuid(),
+  property_id   uuid not null references properties(id) on delete cascade,
+  offer_date    date not null default current_date,
+  amount        numeric(12,2) not null,
+  status        text not null default 'Draft',
+  contingencies text,
+  expiry_at     timestamptz,
+  notes         text,
+  added_by      text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+-- status values: Draft | Submitted | Countered | Accepted | Rejected | Withdrawn
+
+create index if not exists offers_property_id_idx on offers(property_id);
+create index if not exists offers_status_idx       on offers(status);
+
+create trigger offers_updated_at
+  before update on offers
+  for each row execute function update_updated_at();
+
+alter publication supabase_realtime add table offers;
