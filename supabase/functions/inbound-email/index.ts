@@ -1,27 +1,29 @@
-// inbound-email — Resend inbound webhook → contact_note
+// inbound-email — Cloudmailin inbound webhook → contact_note
 //
-// Setup (one-time):
-//   1. Add your domain to Resend → Domains → verify DNS
-//   2. Resend → Inbound → create route for move@yourdomain.com
-//   3. Set webhook URL to: https://<project-ref>.supabase.co/functions/v1/inbound-email
-//   4. Set env var INBOUND_EMAIL_SECRET to any random string
-//   5. In Resend webhook settings, add header: x-inbound-secret: <same string>
+// Setup (one-time, ~10 minutes, no domain needed):
+//   1. Sign up free at https://cloudmailin.com — gives you a unique @cloudmailin.net address
+//   2. In Cloudmailin → Address settings → set Target URL to:
+//        https://<INBOUND_EMAIL_USER>:<INBOUND_EMAIL_PASS>@<project-ref>.supabase.co/functions/v1/inbound-email
+//   3. Set Post Format to "JSON (Normalised)"
+//   4. supabase secrets set INBOUND_EMAIL_USER=<any username> INBOUND_EMAIL_PASS=<any password>
+//   5. supabase functions deploy inbound-email
 //
 // Usage:
-//   Forward or CC move@yourdomain.com on any email with a contact.
-//   The function auto-matches sender → contact and logs it as a contact note.
+//   Forward any email to your @cloudmailin.net address.
+//   The function auto-matches the original sender → contact and logs it as a contact note.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface ResendInboundPayload {
-  from:        string        // "Name <email@example.com>" or "email@example.com"
-  to:          string[]
-  subject:     string | null
-  text:        string | null
+interface CloudmailinPayload {
+  headers: {
+    from?:    string   // "Name <email>" or "email"
+    subject?: string
+    [k: string]: string | undefined
+  }
+  plain:       string | null
   html:        string | null
-  headers?:    Record<string, string>
   spam_score?: number
 }
 
@@ -44,12 +46,9 @@ function emailDomain(email: string): string {
   return email.split('@')[1] ?? ''
 }
 
-/**
- * Trim HTML to plain text and cap at maxLen chars.
- * Falls back to text/plain if html is absent.
- */
-function toSnippet(text: string | null, html: string | null, maxLen = 600): string {
-  const src = text
+/** Trim to plain text and cap at maxLen chars. */
+function toSnippet(plain: string | null, html: string | null, maxLen = 600): string {
+  const src = plain
     ?? html?.replace(/<[^>]+>/g, ' ').replace(/\s{2,}/g, ' ').trim()
     ?? ''
   return src.length > maxLen ? src.slice(0, maxLen) + '…' : src
@@ -58,23 +57,26 @@ function toSnippet(text: string | null, html: string | null, maxLen = 600): stri
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
-  // Only accept POST
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
   }
 
-  // Verify shared secret (prevents random internet traffic from logging fake notes)
-  const expectedSecret = Deno.env.get('INBOUND_EMAIL_SECRET')
-  if (expectedSecret) {
-    const provided = req.headers.get('x-inbound-secret')
-    if (provided !== expectedSecret) {
+  // HTTP Basic Auth — credentials are embedded by Cloudmailin in the target URL
+  const expectedUser = Deno.env.get('INBOUND_EMAIL_USER')
+  const expectedPass = Deno.env.get('INBOUND_EMAIL_PASS')
+  if (expectedUser && expectedPass) {
+    const authHeader = req.headers.get('authorization') ?? ''
+    const b64 = authHeader.replace(/^Basic\s+/i, '')
+    const decoded = b64 ? atob(b64) : ''
+    const [user, pass] = decoded.split(':')
+    if (user !== expectedUser || pass !== expectedPass) {
       return new Response('Unauthorized', { status: 401 })
     }
   }
 
-  let payload: ResendInboundPayload
+  let payload: CloudmailinPayload
   try {
-    payload = await req.json() as ResendInboundPayload
+    payload = await req.json() as CloudmailinPayload
   } catch {
     return new Response('Bad JSON', { status: 400 })
   }
@@ -89,12 +91,12 @@ Deno.serve(async (req: Request) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  const senderRaw   = payload.from ?? ''
-  const senderEmail = extractEmail(senderRaw)
-  const senderName  = extractName(senderRaw)
+  const senderRaw    = payload.headers.from ?? ''
+  const senderEmail  = extractEmail(senderRaw)
+  const senderName   = extractName(senderRaw)
   const senderDomain = emailDomain(senderEmail)
-  const subject     = payload.subject?.trim() ?? '(no subject)'
-  const snippet     = toSnippet(payload.text, payload.html)
+  const subject      = payload.headers.subject?.trim() ?? '(no subject)'
+  const snippet      = toSnippet(payload.plain, payload.html)
 
   // ── 1. Try to match a contact ────────────────────────────────────────────
 
@@ -134,11 +136,11 @@ Deno.serve(async (req: Request) => {
     const { data: newContact, error: createErr } = await supabase
       .from('contacts')
       .insert({
-        name:      newName,
-        email:     senderEmail,
-        status:    'Prospect',
-        added_by:  'inbound-email',
-        notes:     `Auto-created from inbound email on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+        name:     newName,
+        email:    senderEmail,
+        status:   'Prospect',
+        added_by: 'inbound-email',
+        notes:    `Auto-created from inbound email on ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
       })
       .select('id')
       .single()
