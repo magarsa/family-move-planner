@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
-import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2 } from 'lucide-react'
+import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2, UserCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 
@@ -48,8 +48,9 @@ export default function Communications() {
   const [filterContact, setFilterContact] = useState<string>('All')
   const [filterSource,  setFilterSource]  = useState<'All' | 'Auto' | 'Manual'>('All')
 
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-  const [deletingId,  setDeletingId]  = useState<string | null>(null)
+  const [expandedIds,   setExpandedIds]   = useState<Set<string>>(new Set())
+  const [deletingId,    setDeletingId]    = useState<string | null>(null)
+  const [reassigningId, setReassigningId] = useState<string | null>(null)
 
   const TRUNCATE_AT = 220
 
@@ -66,6 +67,17 @@ export default function Communications() {
     await supabase.from('contact_notes').delete().eq('id', id)
     setNotes(prev => prev.filter(n => n.id !== id))
     setDeletingId(null)
+  }
+
+  async function handleReassign(noteId: string, newContactId: string) {
+    setReassigningId(null)
+    await supabase.from('contact_notes').update({ contact_id: newContactId }).eq('id', noteId)
+    const newContact = contacts.find(c => c.id === newContactId)
+    if (newContact) {
+      setNotes(prev => prev.map(n =>
+        n.id === noteId ? { ...n, contact_id: newContactId, contact: newContact } : n
+      ))
+    }
   }
 
   useEffect(() => {
@@ -269,11 +281,34 @@ export default function Communications() {
                             {formatAmount(note.amount)}
                           </span>
                         )}
+                        {/* Reassign contact */}
+                        {reassigningId === note.id ? (
+                          <select
+                            autoFocus
+                            defaultValue=""
+                            onBlur={() => setReassigningId(null)}
+                            onChange={e => { if (e.target.value) handleReassign(note.id, e.target.value) }}
+                            className="ml-auto text-xs border border-stone-200 dark:border-stone-700 rounded-lg px-2 py-1 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                          >
+                            <option value="" disabled>Move to…</option>
+                            {contacts.map(c => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <button
+                            onClick={() => setReassigningId(note.id)}
+                            className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-stone-300 hover:text-teal-500 dark:text-stone-600 dark:hover:text-teal-400"
+                            title="Reassign to different contact"
+                          >
+                            <UserCheck size={13} />
+                          </button>
+                        )}
                         {/* Delete button */}
                         <button
                           onClick={() => handleDeleteNote(note.id)}
                           disabled={isDeleting}
-                          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-stone-300 hover:text-red-500 dark:text-stone-600 dark:hover:text-red-400 disabled:opacity-50"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-stone-300 hover:text-red-500 dark:text-stone-600 dark:hover:text-red-400 disabled:opacity-50"
                           title="Delete"
                         >
                           <Trash2 size={13} />

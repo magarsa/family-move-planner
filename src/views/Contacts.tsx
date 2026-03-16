@@ -112,7 +112,15 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   const [noteType, setNoteType] = useState<NoteType>('Note')
   const [noteContent, setNoteContent] = useState('')
   const [noteAmount, setNoteAmount] = useState('')
+  const [noteDate, setNoteDate] = useState('')
   const [postingNote, setPostingNote] = useState(false)
+
+  function openNoteForm() {
+    const now = new Date()
+    // datetime-local format requires "YYYY-MM-DDTHH:mm"
+    setNoteDate(now.toISOString().slice(0, 16))
+    setShowNoteForm(true)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -173,7 +181,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
       content: noteContent.trim(),
       note_type: noteType,
       amount: noteAmount ? parseFloat(noteAmount) : null,
-      note_date: new Date().toISOString(),
+      note_date: noteDate ? new Date(noteDate).toISOString() : new Date().toISOString(),
       added_by: userName,
     }
     const { data } = await supabase.from('contact_notes').insert(newNote).select().single()
@@ -182,6 +190,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
     }
     setNoteContent('')
     setNoteAmount('')
+    setNoteDate('')
     setNoteType('Note')
     setShowNoteForm(false)
     setPostingNote(false)
@@ -399,7 +408,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Conversation Log</div>
                   <button
-                    onClick={() => setShowNoteForm(v => !v)}
+                    onClick={() => showNoteForm ? setShowNoteForm(false) : openNoteForm()}
                     className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400 hover:text-teal-700 font-medium"
                   >
                     {showNoteForm ? <X size={12} /> : <Plus size={12} />}
@@ -442,6 +451,13 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                               />
                             </div>
                           )}
+                          <input
+                            type="datetime-local"
+                            value={noteDate}
+                            onChange={e => setNoteDate(e.target.value)}
+                            className="input-field text-sm"
+                            title="Date & time of correspondence"
+                          />
                         </div>
                         <textarea
                           value={noteContent}
