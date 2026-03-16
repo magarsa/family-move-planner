@@ -20,16 +20,13 @@ const PHASES = [
   { tier: 'Later' as const, label: 'Ongoing', color: 'bg-blue-500', lightBg: 'bg-blue-50 dark:bg-blue-950/30', textColor: 'text-blue-600 dark:text-blue-400' },
 ]
 
-const TARGET_DATE = new Date('2026-09-01')
-const START_DATE = new Date('2026-03-01')
-
 function daysUntil(date: Date): number {
   return Math.max(0, Math.ceil((date.getTime() - Date.now()) / 86400000))
 }
 
-function progressPercent(): number {
-  const total = TARGET_DATE.getTime() - START_DATE.getTime()
-  const elapsed = Date.now() - START_DATE.getTime()
+function progressPercent(start: Date, target: Date): number {
+  const total = target.getTime() - start.getTime()
+  const elapsed = Date.now() - start.getTime()
   return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
 }
 
@@ -40,6 +37,7 @@ export default function Dashboard() {
   const [whatifs, setWhatifs] = useState<WhatIfRow[]>([])
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [schools, setSchools] = useState<SchoolRow[]>([])
+  const [profile, setProfile] = useState<{ key: string; value: string | null }[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -50,18 +48,21 @@ export default function Dashboard() {
         { data: whatifsData },
         { data: propertiesData },
         { data: schoolsData },
+        { data: profileData },
       ] = await Promise.all([
         supabase.from('todos').select('*'),
         supabase.from('branches').select('*'),
         supabase.from('whatifs').select('*'),
         supabase.from('properties').select('id, address, area, status, visit_at'),
         supabase.from('schools').select('id, name, status'),
+        supabase.from('profile').select('key, value'),
       ])
       setTodos(todosData || [])
       setBranches(branchesData || [])
       setWhatifs(whatifsData || [])
       setProperties((propertiesData || []) as PropertyRow[])
       setSchools((schoolsData || []) as SchoolRow[])
+      setProfile((profileData || []) as { key: string; value: string | null }[])
       setLoading(false)
     }
     load()
@@ -135,7 +136,11 @@ export default function Dashboard() {
     researching: schools.filter(s => s.status === 'Researching' || !s.status).length,
   }
 
-  const timeProgress = progressPercent()
+  const pMap = Object.fromEntries(profile.map(r => [r.key, r.value ?? '']))
+  const START_DATE  = pMap.move_start_date  ? new Date(pMap.move_start_date)  : new Date('2026-03-01')
+  const TARGET_DATE = pMap.move_target_date ? new Date(pMap.move_target_date) : new Date('2026-09-01')
+
+  const timeProgress = progressPercent(START_DATE, TARGET_DATE)
   const daysLeft = daysUntil(TARGET_DATE)
 
   if (loading) {
@@ -190,8 +195,8 @@ export default function Dashboard() {
             />
           </div>
           <div className="flex justify-between mt-2 text-xs text-stone-400 dark:text-stone-500">
-            <span>Mar 2026 — Start</span>
-            <span>Sep 2026 — Target</span>
+            <span>{START_DATE.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} — Start</span>
+            <span>{TARGET_DATE.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} — Target</span>
           </div>
         </div>
 

@@ -21,6 +21,8 @@ const PROFILE_META: { key: string; label: string; hint?: string; multiline?: boo
   { key: 'equity_to_deploy',          label: 'Expected Equity to Deploy' },
   { key: 'destination_budget',        label: 'Home Budget' },
   { key: 'target_suburbs',            label: 'Target Suburb(s)',               hint: 'e.g. Fort Mill SC, Cary NC, Simpsonville SC', multiline: true },
+  { key: 'move_start_date',           label: 'Move Planning Start',            hint: 'YYYY-MM-DD, e.g. 2026-03-01' },
+  { key: 'move_target_date',          label: 'Target Move Date',               hint: 'YYYY-MM-DD, e.g. 2026-09-01' },
 ]
 
 const SELL_META: { key: string; label: string; hint?: string; multiline?: boolean }[] = [
@@ -60,9 +62,9 @@ function ProfileFieldRow({ meta, row, onSave }: RowProps) {
   const isTBD = !value || value === 'TBD' || value === '⬜ TBD'
 
   return (
-    <div className="py-3.5 flex items-start gap-4 border-b border-stone-100 last:border-0 group">
+    <div className="py-3.5 flex items-start gap-4 border-b border-stone-100 dark:border-stone-800 last:border-0 group">
       <div className="w-48 flex-shrink-0">
-        <div className="text-sm font-medium text-stone-600">{meta.label}</div>
+        <div className="text-sm font-medium text-stone-600 dark:text-stone-400">{meta.label}</div>
         {meta.hint && <div className="text-xs text-stone-400 mt-0.5">{meta.hint}</div>}
       </div>
 
@@ -112,12 +114,12 @@ function ProfileFieldRow({ meta, row, onSave }: RowProps) {
               exit={{ opacity: 0 }}
               className="flex items-center gap-2"
             >
-              <span className={`text-sm flex-1 ${isTBD ? 'text-stone-400 italic' : 'text-stone-800'}`}>
+              <span className={`text-sm flex-1 ${isTBD ? 'text-stone-400 dark:text-stone-500 italic' : 'text-stone-800 dark:text-stone-200'}`}>
                 {isTBD ? 'Not set yet' : value}
               </span>
               <button
                 onClick={() => { setDraft(row?.value || ''); setEditing(true) }}
-                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-stone-400 hover:text-teal-600 hover:bg-stone-50 transition-all"
+                className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-stone-400 hover:text-teal-600 hover:bg-stone-50 dark:hover:bg-stone-700/50 transition-all"
               >
                 <Pencil size={13} />
               </button>
@@ -194,8 +196,8 @@ export default function Profile() {
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-stone-900">Our Profile</h1>
-          <p className="text-stone-500 mt-1">Key facts about your move. Click any field to edit.</p>
+          <h1 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100">Our Profile</h1>
+          <p className="text-stone-500 dark:text-stone-400 mt-1">Key facts about your move. Click any field to edit.</p>
         </div>
         {tbd > 0 && (
           <span className="status-badge bg-amber-100 text-amber-700">
@@ -204,7 +206,7 @@ export default function Profile() {
         )}
       </div>
 
-      <div className="card px-5 divide-y divide-stone-100">
+      <div className="card px-5 divide-y divide-stone-100 dark:divide-stone-800">
         {PROFILE_META.map(meta => (
           <ProfileFieldRow
             key={meta.key}
@@ -273,12 +275,12 @@ export default function Profile() {
         )}
       </div>
 
-      <div className="card p-5 bg-teal-50 border-teal-100">
+      <div className="card p-5 bg-teal-50 dark:bg-teal-900/10 border-teal-100 dark:border-teal-900/30">
         <div className="flex items-center gap-2 mb-2">
           <User2 size={16} className="text-teal-600" />
-          <span className="font-semibold text-teal-800 text-sm">App Users</span>
+          <span className="font-semibold text-teal-800 dark:text-teal-300 text-sm">App Users</span>
         </div>
-        <p className="text-sm text-teal-700">
+        <p className="text-sm text-teal-700 dark:text-teal-400">
           <strong>Safal</strong> (Husband) and <strong>Prativa</strong> (Wife) — switch users from the sidebar.
           All changes are synced in real-time between both of you.
         </p>
