@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Clock, Plus, Check, Trash2, AlertTriangle, Calendar, ChevronDown } from 'lucide-react'
+import { Clock, Plus, Check, Trash2, AlertTriangle, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import { useUser } from '../hooks/useUser'
 
 type DeadlineRow  = Tables<'deadlines'>
-type PropertyRow  = Tables<'properties'>
 
 const CATEGORIES = ['Offer', 'Inspection', 'Appraisal', 'Financing', 'Closing', 'Listing', 'Other']
 
@@ -46,7 +45,7 @@ function urgencyLabel(days: number) {
 export default function Deadlines() {
   const { userName }  = useUser()
   const [deadlines, setDeadlines] = useState<DeadlineRow[]>([])
-  const [properties, setProperties] = useState<PropertyRow[]>([])
+  const [properties, setProperties] = useState<{ id: string; address: string | null; area: string | null }[]>([])
   const [loading,   setLoading]   = useState(true)
   const [showAdd,   setShowAdd]   = useState(false)
 

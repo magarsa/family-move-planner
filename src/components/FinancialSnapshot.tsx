@@ -1,21 +1,18 @@
 import { useEffect, useState, useMemo } from 'react'
-import { DollarSign, TrendingUp, Home, ChevronDown, Info } from 'lucide-react'
+import { DollarSign, TrendingUp, ChevronDown, Info } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 
-type ProfileRow  = Tables<'profile'>
 type ScenarioRow = Tables<'sale_scenarios'>
 type PropertyRow = Tables<'properties'>
 
 interface Props {
-  profile: ProfileRow[]
+  profile: { key: string; value: string | null }[]
 }
 
 const DEFAULT_RATE   = 0.07   // 7% annual
 const DEFAULT_TERM   = 30     // years
-const AGENT_FEE_PCT  = 0.06   // 6% selling costs
-const CLOSING_SELL   = 0.01   // 1% seller closing costs
 const CLOSING_BUY    = 0.03   // 3% buyer closing costs estimate
 
 function monthlyPayment(principal: number, annualRate: number, termYears: number): number {
@@ -47,24 +44,18 @@ export default function FinancialSnapshot({ profile }: Props) {
 
   useEffect(() => {
     async function load() {
-      const queries: Promise<unknown>[] = [
+      const [propsRes, scenRes] = await Promise.all([
         supabase.from('properties').select('id, address, area, price, status')
           .in('status', ['Considering', 'Visit Scheduled', 'Visited', 'Offer Made'])
           .order('created_at', { ascending: false }),
-      ]
-      if (sellPropertyId) {
-        queries.push(
-          supabase.from('sale_scenarios').select('*')
-            .eq('property_id', sellPropertyId)
-            .order('scenario_number', { ascending: true })
-        )
-      }
-      const [propsRes, scenRes] = await Promise.all(queries as [
-        ReturnType<typeof supabase.from>,
-        ReturnType<typeof supabase.from>?,
+        sellPropertyId
+          ? supabase.from('sale_scenarios').select('*')
+              .eq('property_id', sellPropertyId)
+              .order('scenario_number', { ascending: true })
+          : Promise.resolve({ data: [] as ScenarioRow[] }),
       ])
-      const propData = (propsRes as { data: PropertyRow[] | null }).data ?? []
-      const scenData = scenRes ? (scenRes as { data: ScenarioRow[] | null }).data ?? [] : []
+      const propData = (propsRes.data ?? []) as PropertyRow[]
+      const scenData = (scenRes.data ?? []) as ScenarioRow[]
       setProperties(propData)
       setScenarios(scenData)
       if (propData.length > 0) setSelectedProperty(propData[0].id)
