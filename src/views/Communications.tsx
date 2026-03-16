@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter } from 'lucide-react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
+import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 
@@ -46,6 +46,27 @@ export default function Communications() {
 
   const [filterType,    setFilterType]    = useState<NoteType | 'All'>('All')
   const [filterContact, setFilterContact] = useState<string>('All')
+  const [filterSource,  setFilterSource]  = useState<'All' | 'Auto' | 'Manual'>('All')
+
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [deletingId,  setDeletingId]  = useState<string | null>(null)
+
+  const TRUNCATE_AT = 220
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }, [])
+
+  async function handleDeleteNote(id: string) {
+    setDeletingId(id)
+    await supabase.from('contact_notes').delete().eq('id', id)
+    setNotes(prev => prev.filter(n => n.id !== id))
+    setDeletingId(null)
+  }
 
   useEffect(() => {
     async function load() {
@@ -74,9 +95,11 @@ export default function Communications() {
     return notes.filter(n => {
       if (filterType !== 'All' && n.note_type !== filterType) return false
       if (filterContact !== 'All' && n.contact_id !== filterContact) return false
+      if (filterSource === 'Auto'   && n.added_by !== 'inbound-email') return false
+      if (filterSource === 'Manual' && n.added_by === 'inbound-email') return false
       return true
     })
-  }, [notes, filterType, filterContact])
+  }, [notes, filterType, filterContact, filterSource])
 
   const grouped = useMemo(() => groupByDay(filtered), [filtered])
 
@@ -163,9 +186,18 @@ export default function Communications() {
           <option value="All">All types</option>
           {ALL_NOTE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        {(filterType !== 'All' || filterContact !== 'All') && (
+        <select
+          value={filterSource}
+          onChange={e => setFilterSource(e.target.value as 'All' | 'Auto' | 'Manual')}
+          className="text-sm border border-stone-200 dark:border-stone-700 rounded-lg px-2 py-1.5 bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 focus:outline-none focus:ring-2 focus:ring-teal-500"
+        >
+          <option value="All">All sources</option>
+          <option value="Auto">Auto-logged</option>
+          <option value="Manual">Manual</option>
+        </select>
+        {(filterType !== 'All' || filterContact !== 'All' || filterSource !== 'All') && (
           <button
-            onClick={() => { setFilterType('All'); setFilterContact('All') }}
+            onClick={() => { setFilterType('All'); setFilterContact('All'); setFilterSource('All') }}
             className="text-xs text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 underline"
           >
             Clear filters
@@ -201,10 +233,16 @@ export default function Communications() {
                 {dayNotes.map(note => {
                   const typeKey = (note.note_type ?? 'Note') as string
                   const { badge, icon: Icon } = NOTE_TYPE_STYLES[typeKey] ?? NOTE_TYPE_STYLES.Note
+                  const isLong     = (note.content?.length ?? 0) > TRUNCATE_AT
+                  const isExpanded = expandedIds.has(note.id)
+                  const isDeleting = deletingId === note.id
+                  const displayContent = isLong && !isExpanded
+                    ? note.content.slice(0, TRUNCATE_AT) + '…'
+                    : note.content
                   return (
                     <div
                       key={note.id}
-                      className="bg-white dark:bg-stone-800/60 border border-stone-100 dark:border-stone-700 rounded-xl p-3.5 space-y-1.5"
+                      className="group bg-white dark:bg-stone-800/60 border border-stone-100 dark:border-stone-700 rounded-xl p-3.5 space-y-1.5"
                     >
                       <div className="flex items-center gap-2 flex-wrap">
                         {/* Note type badge */}
@@ -212,6 +250,10 @@ export default function Communications() {
                           <Icon size={11} />
                           {typeKey}
                         </span>
+                        {/* Auto-logged indicator */}
+                        {note.added_by === 'inbound-email' && (
+                          <span className="text-xs text-stone-400 dark:text-stone-500 italic">auto</span>
+                        )}
                         {/* Contact name */}
                         <span className="text-sm font-semibold text-stone-800 dark:text-stone-100">
                           {note.contact.name}
@@ -227,11 +269,28 @@ export default function Communications() {
                             {formatAmount(note.amount)}
                           </span>
                         )}
+                        {/* Delete button */}
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          disabled={isDeleting}
+                          className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-stone-300 hover:text-red-500 dark:text-stone-600 dark:hover:text-red-400 disabled:opacity-50"
+                          title="Delete"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </div>
 
-                      <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">
-                        {note.content}
+                      <p className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">
+                        {displayContent}
                       </p>
+                      {isLong && (
+                        <button
+                          onClick={() => toggleExpand(note.id)}
+                          className="text-xs text-teal-600 dark:text-teal-400 hover:underline"
+                        >
+                          {isExpanded ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
 
                       <div className="flex items-center gap-3 pt-0.5">
                         {note.note_date && (
@@ -239,7 +298,7 @@ export default function Communications() {
                             {new Date(note.note_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </span>
                         )}
-                        {note.added_by && (
+                        {note.added_by && note.added_by !== 'inbound-email' && (
                           <span className="text-xs text-stone-400 dark:text-stone-500">
                             logged by {note.added_by}
                           </span>
