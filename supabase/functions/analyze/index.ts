@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { RESEARCH_CONTEXT, buildPropertyPrompt, buildSchoolPrompt } from './researchContext.ts'
+import { buildResearchContext, buildPropertyPrompt, buildSchoolPrompt } from './researchContext.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,10 +34,22 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Build prompt based on entity type
-    const userPrompt = entityType === 'property'
-      ? buildPropertyPrompt(entityData)
-      : buildSchoolPrompt(entityData)
+    // Create Supabase client (service role — needed to write analysis back)
+    const supabaseUrl  = Deno.env.get('SUPABASE_URL')!
+    const serviceKey   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const supabase     = createClient(supabaseUrl, serviceKey)
+
+    // Fetch live profile data to personalize the AI context
+    const { data: profileRows } = await supabase.from('profile').select('key, value')
+    const profile = Object.fromEntries(
+      (profileRows || []).map((r: { key: string; value: string | null }) => [r.key, r.value || ''])
+    )
+
+    // Build prompts with live profile data
+    const systemPrompt = buildResearchContext(profile)
+    const userPrompt   = entityType === 'property'
+      ? buildPropertyPrompt(entityData, profile)
+      : buildSchoolPrompt(entityData, profile)
 
     // Call Anthropic API
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -50,7 +62,7 @@ Deno.serve(async (req: Request) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1200,
-        system: RESEARCH_CONTEXT,
+        system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
       }),
     })
@@ -69,7 +81,7 @@ Deno.serve(async (req: Request) => {
 
     const rawText = anthropicData.content?.[0]?.text || ''
 
-    // Strip markdown fences if present (same guard as Home-Finder)
+    // Strip markdown fences if present
     const jsonText = rawText
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```\s*$/i, '')
@@ -85,11 +97,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // Write result back to Supabase using service role key
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    const supabase = createClient(supabaseUrl, serviceKey)
-
+    // Write result back to the property or school row
     const table = entityType === 'property' ? 'properties' : 'schools'
     const { error: dbError } = await supabase
       .from(table)
