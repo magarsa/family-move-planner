@@ -296,7 +296,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                   <select
                     value={editRole}
                     onChange={e => markDirty(setEditRole)(e.target.value)}
-                    className="input-field text-sm"
+                    className="select-field text-sm"
                   >
                     <option value="">— Select role —</option>
                     {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -366,7 +366,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                   <select
                     value={linkedPropertyId}
                     onChange={e => markDirty(setLinkedPropertyId)(e.target.value)}
-                    className="input-field pl-8 text-sm"
+                    className="select-field pl-8 text-sm"
                   >
                     <option value="">— None —</option>
                     {properties.map(p => (
@@ -428,11 +428,11 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                     >
                       <div className="bg-stone-50 dark:bg-stone-800/60 rounded-xl p-4 mb-3 space-y-3">
                         <div className="flex gap-3">
-                          <div className="flex-1">
+                          <div className="w-36">
                             <select
                               value={noteType}
                               onChange={e => setNoteType(e.target.value as NoteType)}
-                              className="input-field text-sm"
+                              className="select-field text-sm"
                             >
                               {(['Note', 'Call', 'Email', 'Meeting', 'Estimate', 'Other'] as NoteType[]).map(t => (
                                 <option key={t} value={t}>{t}</option>
@@ -451,13 +451,15 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                               />
                             </div>
                           )}
-                          <input
-                            type="datetime-local"
-                            value={noteDate}
-                            onChange={e => setNoteDate(e.target.value)}
-                            className="input-field text-sm"
-                            title="Date & time of correspondence"
-                          />
+                          <div className="w-52">
+                            <input
+                              type="datetime-local"
+                              value={noteDate}
+                              onChange={e => setNoteDate(e.target.value)}
+                              className="input-field text-sm"
+                              title="Date & time of correspondence"
+                            />
+                          </div>
                         </div>
                         <textarea
                           value={noteContent}
@@ -620,7 +622,7 @@ function AddContactForm({ onAdd, onCancel }: AddContactFormProps) {
           <select
             value={role}
             onChange={e => setRole(e.target.value)}
-            className="input-field text-sm"
+            className="select-field text-sm"
           >
             <option value="">— Select role —</option>
             {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
@@ -762,7 +764,7 @@ export default function Contacts() {
         <select
           value={filterRole}
           onChange={e => setFilterRole(e.target.value)}
-          className="input-field text-sm w-auto"
+          className="select-field text-sm w-auto"
         >
           <option value="">All roles</option>
           {roles.map(r => <option key={r} value={r}>{r}</option>)}
@@ -770,7 +772,7 @@ export default function Contacts() {
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
-          className="input-field text-sm w-auto"
+          className="select-field text-sm w-auto"
         >
           <option value="">All statuses</option>
           {STATUS_ORDER.map(s => <option key={s} value={s}>{s}</option>)}
