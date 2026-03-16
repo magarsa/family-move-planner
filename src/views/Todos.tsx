@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Fragment } from 'react'
 import { Plus, Check, Trash2, Loader2, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -39,6 +39,8 @@ export default function Todos() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [side, setSide] = useState<Side>('Buying')
+  const [addingSubtask, setAddingSubtask] = useState<{ parentId: string; text: string } | null>(null)
+  const addSubtaskInputRef = useRef<HTMLInputElement>(null)
 
   async function fetchTodos() {
     const { data } = await supabase
@@ -62,6 +64,10 @@ export default function Todos() {
     if (adding) addInputRef.current?.focus()
   }, [adding])
 
+  useEffect(() => {
+    if (addingSubtask) addSubtaskInputRef.current?.focus()
+  }, [addingSubtask])
+
   async function toggleTodo(todo: TodoRow) {
     const now = new Date().toISOString()
     const updated = {
@@ -69,7 +75,6 @@ export default function Todos() {
       completed_at: !todo.completed ? now : null,
       completed_by: !todo.completed ? userName : null,
     }
-    // Optimistic update
     setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, ...updated } : t))
     await supabase.from('todos').update(updated).eq('id', todo.id)
   }
@@ -90,17 +95,39 @@ export default function Todos() {
       created_by: userName,
       sort_order: todos.filter(t => t.tier === adding.tier && !t.completed).length + 1,
     }
-    // Optimistic: add with temp id
     const tempId = `temp-${Date.now()}`
-    setTodos(prev => [...prev, { ...newTodo, id: tempId, created_at: new Date().toISOString(), property_id: null, sale_timeline_phase_id: null }])
+    setTodos(prev => [...prev, { ...newTodo, id: tempId, created_at: new Date().toISOString(), property_id: null, sale_timeline_phase_id: null, parent_id: null }])
     setAdding(null)
     await supabase.from('todos').insert(newTodo)
-    await fetchTodos() // sync real id
+    await fetchTodos()
+    setSaving(false)
+  }
+
+  async function addSubtask() {
+    if (!addingSubtask?.text.trim()) { setAddingSubtask(null); return }
+    const parent = todos.find(t => t.id === addingSubtask.parentId)
+    if (!parent) { setAddingSubtask(null); return }
+    setSaving(true)
+    const newSub = {
+      text: addingSubtask.text.trim(),
+      tier: parent.tier,
+      parent_id: parent.id,
+      completed: false,
+      completed_at: null,
+      completed_by: null,
+      branch_id: null,
+      created_by: userName,
+      sort_order: todos.filter(t => t.parent_id === parent.id).length + 1,
+    }
+    setTodos(prev => [...prev, { ...newSub, id: `temp-sub-${Date.now()}`, created_at: new Date().toISOString(), property_id: null, sale_timeline_phase_id: null }])
+    setAddingSubtask(null)
+    await supabase.from('todos').insert(newSub)
+    await fetchTodos()
     setSaving(false)
   }
 
   async function deleteTodo(id: string) {
-    setTodos(prev => prev.filter(t => t.id !== id))
+    setTodos(prev => prev.filter(t => t.id !== id && t.parent_id !== id))
     await supabase.from('todos').delete().eq('id', id)
   }
 
@@ -126,9 +153,8 @@ export default function Todos() {
 
   const activeTiers = side === 'Buying' ? TIERS : SELL_TIERS
   const activeTodos = todos.filter(t =>
-    side === 'Buying'
-      ? !t.tier.startsWith('sell_')
-      : t.tier.startsWith('sell_')
+    (side === 'Buying' ? !t.tier.startsWith('sell_') : t.tier.startsWith('sell_'))
+    && t.parent_id === null
   )
 
   return (
@@ -145,7 +171,7 @@ export default function Todos() {
           {(['Buying', 'Selling'] as Side[]).map(s => (
             <button
               key={s}
-              onClick={() => { setSide(s); setAdding(null) }}
+              onClick={() => { setSide(s); setAdding(null); setAddingSubtask(null) }}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 side === s
                   ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
@@ -160,7 +186,7 @@ export default function Todos() {
 
       <div className="space-y-6">
         {activeTiers.map(tier => {
-          const tierTodos = todos.filter(t => t.tier === tier.id)
+          const tierTodos = todos.filter(t => t.tier === tier.id && t.parent_id === null)
           const pending = tierTodos.filter(t => !t.completed)
           const done = tierTodos.filter(t => t.completed)
 
@@ -178,7 +204,7 @@ export default function Todos() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-stone-500 dark:text-stone-400">{pending.length} pending</span>
                   <button
-                    onClick={() => setAdding({ tier: tier.id, text: '' })}
+                    onClick={() => { setAdding({ tier: tier.id, text: '' }); setAddingSubtask(null) }}
                     className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg transition-colors ${tier.color} hover:bg-white/60`}
                   >
                     <Plus size={13} /> Add
@@ -189,56 +215,145 @@ export default function Todos() {
               {/* Todo items */}
               <div className="divide-y divide-stone-50 dark:divide-stone-700/50">
                 <AnimatePresence initial={false}>
-                  {pending.map(todo => (
-                    <motion.div
-                      key={todo.id}
-                      layout
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex items-start gap-3 px-5 py-3.5 group hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors"
-                    >
-                      <button
-                        onClick={() => toggleTodo(todo)}
-                        className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${tier.ring} border-stone-300 dark:border-stone-600 hover:border-teal-500`}
-                      />
-                      {editingId === todo.id ? (
-                        <input
-                          autoFocus
-                          value={editText}
-                          onChange={e => setEditText(e.target.value)}
-                          onBlur={() => saveEdit(todo.id)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') saveEdit(todo.id)
-                            if (e.key === 'Escape') setEditingId(null)
-                          }}
-                          className="flex-1 px-2 py-0.5 text-sm bg-white dark:bg-stone-700 dark:text-stone-100 border border-teal-300 dark:border-teal-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-                        />
-                      ) : (
-                        <span
-                          className="flex-1 text-sm text-stone-800 dark:text-stone-200 leading-relaxed cursor-text"
-                          onDoubleClick={() => startEdit(todo)}
-                          title="Double-click to edit"
+                  {pending.map(todo => {
+                    const subtasks = todos.filter(t => t.parent_id === todo.id)
+                    const doneSubs = subtasks.filter(t => t.completed).length
+                    return (
+                      <Fragment key={todo.id}>
+                        {/* Parent todo row */}
+                        <motion.div
+                          layout
+                          initial={{ opacity: 0, y: -8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-start gap-3 px-5 py-3.5 group hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors"
                         >
-                          {todo.text}
-                        </span>
-                      )}
-                      <button
-                        onClick={() => startEdit(todo)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-teal-500 transition-all"
-                        title="Edit"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => deleteTodo(todo.id)}
-                        className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-400 transition-all"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </motion.div>
-                  ))}
+                          <button
+                            onClick={() => toggleTodo(todo)}
+                            className={`mt-0.5 w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all ${tier.ring} border-stone-300 dark:border-stone-600 hover:border-teal-500`}
+                          />
+                          {editingId === todo.id ? (
+                            <input
+                              autoFocus
+                              value={editText}
+                              onChange={e => setEditText(e.target.value)}
+                              onBlur={() => saveEdit(todo.id)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') saveEdit(todo.id)
+                                if (e.key === 'Escape') setEditingId(null)
+                              }}
+                              className="flex-1 px-2 py-0.5 text-sm bg-white dark:bg-stone-700 dark:text-stone-100 border border-teal-300 dark:border-teal-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            />
+                          ) : (
+                            <span
+                              className="flex-1 text-sm text-stone-800 dark:text-stone-200 leading-relaxed cursor-text"
+                              onDoubleClick={() => startEdit(todo)}
+                              title="Double-click to edit"
+                            >
+                              {todo.text}
+                            </span>
+                          )}
+                          {subtasks.length > 0 && (
+                            <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 flex-shrink-0 self-center">
+                              {doneSubs}/{subtasks.length}
+                            </span>
+                          )}
+                          <button
+                            onClick={() => { setAddingSubtask({ parentId: todo.id, text: '' }); setAdding(null) }}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-teal-500 transition-all"
+                            title="Add subtask"
+                          >
+                            <Plus size={12} />
+                          </button>
+                          <button
+                            onClick={() => startEdit(todo)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-teal-500 transition-all"
+                            title="Edit"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => deleteTodo(todo.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-400 transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </motion.div>
+
+                        {/* Subtask rows */}
+                        {subtasks.map(sub => (
+                          <motion.div
+                            key={sub.id}
+                            layout
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className={`flex items-start gap-3 pl-12 pr-5 py-2.5 group transition-colors border-l-2 border-stone-100 dark:border-stone-700 ml-5 ${
+                              sub.completed ? 'opacity-60' : 'hover:bg-stone-50/70 dark:hover:bg-stone-700/20'
+                            }`}
+                          >
+                            <button
+                              onClick={() => toggleTodo(sub)}
+                              className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                sub.completed
+                                  ? `${tier.dot} border-transparent`
+                                  : 'border-stone-300 dark:border-stone-600 hover:border-teal-500'
+                              }`}
+                            >
+                              {sub.completed && <Check size={9} className="text-white" strokeWidth={3} />}
+                            </button>
+                            <span className={`flex-1 text-sm leading-relaxed ${
+                              sub.completed
+                                ? 'line-through text-stone-400 dark:text-stone-500'
+                                : 'text-stone-700 dark:text-stone-300'
+                            }`}>
+                              {sub.text}
+                            </span>
+                            <button
+                              onClick={() => deleteTodo(sub.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-stone-300 hover:text-red-400 transition-all"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </motion.div>
+                        ))}
+
+                        {/* Add subtask inline form */}
+                        <AnimatePresence>
+                          {addingSubtask?.parentId === todo.id && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="pl-12 pr-5 py-2.5 bg-stone-50 dark:bg-stone-800 border-l-2 border-teal-200 dark:border-teal-700 ml-5"
+                            >
+                              <div className="flex items-center gap-2">
+                                <input
+                                  ref={addSubtaskInputRef}
+                                  type="text"
+                                  value={addingSubtask.text}
+                                  onChange={e => setAddingSubtask({ ...addingSubtask, text: e.target.value })}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter') addSubtask()
+                                    if (e.key === 'Escape') setAddingSubtask(null)
+                                  }}
+                                  placeholder="New subtask…"
+                                  className="flex-1 px-3 py-1.5 text-sm bg-white dark:bg-stone-700 dark:text-stone-100 dark:placeholder-stone-400 border border-stone-200 dark:border-stone-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                                />
+                                <button onClick={addSubtask} disabled={saving} className="btn-primary py-1.5 px-3 text-xs">
+                                  {saving ? <Loader2 size={13} className="animate-spin" /> : 'Add'}
+                                </button>
+                                <button onClick={() => setAddingSubtask(null)} className="btn-ghost py-1.5 px-3 text-xs">Cancel</button>
+                              </div>
+                              <p className="text-xs text-stone-400 dark:text-stone-500 mt-1.5 ml-1">Press Enter to add · Esc to cancel</p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </Fragment>
+                    )
+                  })}
                 </AnimatePresence>
 
                 {/* Add form */}
@@ -313,7 +428,7 @@ export default function Todos() {
                   <div className="px-5 py-4 text-sm text-stone-400 dark:text-stone-500 italic">
                     No tasks yet —{' '}
                     <button
-                      onClick={() => setAdding({ tier: tier.id, text: '' })}
+                      onClick={() => { setAdding({ tier: tier.id, text: '' }); setAddingSubtask(null) }}
                       className="text-teal-600 hover:underline not-italic"
                     >
                       add one

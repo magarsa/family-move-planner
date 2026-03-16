@@ -66,7 +66,7 @@ export default function Selling() {
     async function load() {
       const [{ data: p }, { data: t }, { data: c }] = await Promise.all([
         supabase.from('profile').select('*'),
-        supabase.from('todos').select('*').like('tier', 'sell_%').order('sort_order', { ascending: true }),
+        supabase.from('todos').select('*').like('tier', 'sell_%').is('parent_id', null).order('sort_order', { ascending: true }),
         supabase.from('contacts').select('*').eq('role', 'Listing Agent'),
       ])
       setProfile(p || [])
