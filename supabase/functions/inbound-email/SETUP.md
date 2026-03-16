@@ -1,76 +1,99 @@
 # Inbound Email → Contact Note Setup
 
-Forwarding an email from your realtor, lender, or contractor to a special address will auto-log it as a contact note in the app.
+Forward any email to your free Cloudmailin address and it auto-logs as a contact note — no domain purchase needed.
 
 ---
 
 ## How it works
 
-1. You forward (or CC) any email to `move@yourdomain.com`
-2. Resend receives it and POSTs the payload to this edge function
-3. The function matches the sender's email address to a contact in your app
+1. You forward (or CC) any email to `your-address@cloudmailin.net`
+2. Cloudmailin POSTs the payload to the Supabase edge function
+3. The function matches the **original sender** to a contact in your app
 4. It logs the email subject + body snippet as a contact note (type: Email)
-5. It appears immediately in Contacts and in the Comms Log
+5. It appears immediately in Contacts and the Comms Log
 
-If no contact matches, a new **Prospect** contact is auto-created for that sender.
+If no contact matches the sender, a new **Prospect** contact is auto-created.
 
 ---
 
-## One-time setup (~15 minutes)
+## One-time setup (~10 minutes, completely free)
 
-### Step 1 — Create a free Resend account
-Go to https://resend.com and sign up (free tier covers this use case entirely).
+### Step 1 — Sign up for Cloudmailin
+Go to https://cloudmailin.com and create a free account.
 
-### Step 2 — Add your domain to Resend
-- Resend dashboard → **Domains** → Add Domain
-- Enter the domain you own (e.g. `yourdomain.com`)
-- Resend will give you DNS records to add (MX, TXT, CNAME)
-- Add them in your domain registrar (GoDaddy, Namecheap, Cloudflare, etc.)
-- Wait for DNS to verify (usually 5–30 minutes)
+The free tier gives you **200 inbound emails/month** — more than enough for personal move coordination.
 
-> **Don't own a domain?** Buy one from Namecheap (~$10/yr for `.com`).
-> Even a cheap `.info` or `.co` works fine for this purpose.
+### Step 2 — Get your inbound address
+After signing up, Cloudmailin assigns you a unique address like:
 
-### Step 3 — Create an inbound route in Resend
-- Resend dashboard → **Inbound** → New Route
-- Email address: `move@yourdomain.com` (or any address you like)
-- Webhook URL: `https://<your-supabase-project-ref>.supabase.co/functions/v1/inbound-email`
-  - Find your project ref in: Supabase dashboard → Project Settings → General
+```
+a1b2c3d4e5f6@cloudmailin.net
+```
 
-### Step 4 — Set a webhook secret (recommended)
-- In the Resend inbound route settings, add a custom header:
-  - Header name: `x-inbound-secret`
-  - Header value: any random string, e.g. `my-super-secret-abc123`
-- Add the same string as a Supabase secret:
-  ```
-  supabase secrets set INBOUND_EMAIL_SECRET=my-super-secret-abc123
-  ```
+Copy this address — you'll forward emails here.
 
-### Step 5 — Deploy the edge function
+### Step 3 — Choose your Basic Auth credentials
+Pick any username and password (you'll use these in the next two steps):
+
+```
+username: moveplanner          ← anything you like
+password: some-random-string   ← anything you like
+```
+
+### Step 4 — Set the Cloudmailin target URL
+In Cloudmailin → your address → **Target URL**, enter:
+
+```
+https://<USERNAME>:<PASSWORD>@<PROJECT-REF>.supabase.co/functions/v1/inbound-email
+```
+
+Replace:
+- `<USERNAME>` / `<PASSWORD>` with the credentials you chose above
+- `<PROJECT-REF>` with your Supabase project ref (find it in Supabase → Project Settings → General)
+
+Example:
+```
+https://moveplanner:some-random-string@abcdefghijk.supabase.co/functions/v1/inbound-email
+```
+
+Also set **Post Format** to `JSON (Normalised)`.
+
+### Step 5 — Set Supabase secrets
+```bash
+supabase secrets set INBOUND_EMAIL_USER=moveplanner
+supabase secrets set INBOUND_EMAIL_PASS=some-random-string
+```
+
+Use the same username and password from Step 3.
+
+### Step 6 — Deploy the edge function
 ```bash
 supabase functions deploy inbound-email
 ```
 
-### Step 6 — Test it
-Send a test email from your personal address to `move@yourdomain.com`.
-Within seconds, check Contacts — a new contact should appear (or an existing one gets a new Email note), and it should show up in the Comms Log.
+### Step 7 — Test it
+Forward any email to your `@cloudmailin.net` address.
+Within seconds, check Contacts — a new note should appear (type: Email), and the Comms Log will show the entry.
 
 ---
 
-## Tips for daily use
+## Daily workflow
 
-- **Quick log a realtor call:** Forward the email chain to `move@yourdomain.com` — the whole thread snippet gets captured.
-- **New contractor estimate:** Forward the estimate email — it logs as an Email note. Then manually edit to add the `amount` field in the Contacts view.
-- **Lender updates:** Forward rate lock confirmations, approval emails, etc. directly from your inbox — no need to open the app.
-- **Subject becomes the title:** The subject line is used as the first line of the note, so keep subjects clear when forwarding.
+- **Realtor update:** Forward the email to your Cloudmailin address — logged automatically
+- **Lender rate lock:** Forward the confirmation email — appears as a note on your lender contact
+- **Contractor estimate:** Forward the quote email — logged under the contractor's contact
+- **No match?** A new Prospect contact is created automatically; you can rename/merge it later
+
+The subject line becomes the first line of the note, so keep it descriptive when forwarding.
 
 ---
 
 ## Matching logic
 
-The function tries to match the sender in this order:
-1. **Exact email match** — sender's full email matches a contact's email field
-2. **Domain match** — sender's `@company.com` matches any contact's email domain
-3. **Auto-create** — if no match, creates a new Prospect contact for that sender
+The function matches the email **sender** in this order:
 
-To improve matching accuracy, make sure your contacts in the app have their email addresses filled in.
+1. **Exact email match** — sender's full address matches a contact's email field
+2. **Domain match** — sender's `@company.com` matches any contact's email domain
+3. **Auto-create** — new Prospect contact created for unrecognised senders
+
+Fill in email addresses for your contacts in the app to get the best matching.
