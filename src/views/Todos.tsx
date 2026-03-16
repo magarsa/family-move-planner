@@ -92,7 +92,7 @@ export default function Todos() {
     }
     // Optimistic: add with temp id
     const tempId = `temp-${Date.now()}`
-    setTodos(prev => [...prev, { ...newTodo, id: tempId, created_at: new Date().toISOString() }])
+    setTodos(prev => [...prev, { ...newTodo, id: tempId, created_at: new Date().toISOString(), property_id: null, sale_timeline_phase_id: null }])
     setAdding(null)
     await supabase.from('todos').insert(newTodo)
     await fetchTodos() // sync real id

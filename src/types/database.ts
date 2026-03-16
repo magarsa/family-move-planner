@@ -104,6 +104,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           id: string
+          property_id: string | null
+          sale_timeline_phase_id: string | null
           sort_order: number | null
           text: string
           tier: string
@@ -116,6 +118,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          property_id?: string | null
+          sale_timeline_phase_id?: string | null
           sort_order?: number | null
           text: string
           tier: string
@@ -128,6 +132,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           id?: string
+          property_id?: string | null
+          sale_timeline_phase_id?: string | null
           sort_order?: number | null
           text?: string
           tier?: string
@@ -138,6 +144,298 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todos_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_improvements: {
+        Row: {
+          id: string
+          property_id: string
+          name: string
+          description: string | null
+          icon: string | null
+          value_add_low: number | null
+          value_add_high: number | null
+          value_note: string | null
+          status: string
+          sort_order: number | null
+          created_at: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          name: string
+          description?: string | null
+          icon?: string | null
+          value_add_low?: number | null
+          value_add_high?: number | null
+          value_note?: string | null
+          status?: string
+          sort_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          name?: string
+          description?: string | null
+          icon?: string | null
+          value_add_low?: number | null
+          value_add_high?: number | null
+          value_note?: string | null
+          status?: string
+          sort_order?: number | null
+          created_at?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_improvements_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_readiness_scores: {
+        Row: {
+          id: string
+          property_id: string
+          category: string
+          score: number
+          note: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          category: string
+          score: number
+          note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          category?: string
+          score?: number
+          note?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_readiness_scores_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_scenarios: {
+        Row: {
+          id: string
+          property_id: string
+          scenario_number: number
+          title: string
+          description: string | null
+          is_recommended: boolean | null
+          prep_cost_low: number | null
+          prep_cost_high: number | null
+          prep_cost_mid: number | null
+          sale_price_low: number | null
+          sale_price_high: number | null
+          net_proceeds_low: number | null
+          net_proceeds_high: number | null
+          warning_note: string | null
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          scenario_number: number
+          title: string
+          description?: string | null
+          is_recommended?: boolean | null
+          prep_cost_low?: number | null
+          prep_cost_high?: number | null
+          prep_cost_mid?: number | null
+          sale_price_low?: number | null
+          sale_price_high?: number | null
+          net_proceeds_low?: number | null
+          net_proceeds_high?: number | null
+          warning_note?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          scenario_number?: number
+          title?: string
+          description?: string | null
+          is_recommended?: boolean | null
+          prep_cost_low?: number | null
+          prep_cost_high?: number | null
+          prep_cost_mid?: number | null
+          sale_price_low?: number | null
+          sale_price_high?: number | null
+          net_proceeds_low?: number | null
+          net_proceeds_high?: number | null
+          warning_note?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_scenarios_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_scenario_items: {
+        Row: {
+          id: string
+          scenario_id: string
+          label: string
+          cost_low: number | null
+          cost_high: number | null
+          cost_fixed: number | null
+          is_total: boolean | null
+          sort_order: number | null
+        }
+        Insert: {
+          id?: string
+          scenario_id: string
+          label: string
+          cost_low?: number | null
+          cost_high?: number | null
+          cost_fixed?: number | null
+          is_total?: boolean | null
+          sort_order?: number | null
+        }
+        Update: {
+          id?: string
+          scenario_id?: string
+          label?: string
+          cost_low?: number | null
+          cost_high?: number | null
+          cost_fixed?: number | null
+          is_total?: boolean | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_scenario_items_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "sale_scenarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_timeline_phases: {
+        Row: {
+          id: string
+          property_id: string
+          phase_number: number
+          week_label: string
+          date_range: string | null
+          title: string
+          urgency: string | null
+          completed: boolean | null
+          sort_order: number | null
+        }
+        Insert: {
+          id?: string
+          property_id: string
+          phase_number: number
+          week_label: string
+          date_range?: string | null
+          title: string
+          urgency?: string | null
+          completed?: boolean | null
+          sort_order?: number | null
+        }
+        Update: {
+          id?: string
+          property_id?: string
+          phase_number?: number
+          week_label?: string
+          date_range?: string | null
+          title?: string
+          urgency?: string | null
+          completed?: boolean | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_timeline_phases_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_timeline_tasks: {
+        Row: {
+          id: string
+          phase_id: string
+          task_text: string
+          completed: boolean | null
+          completed_at: string | null
+          completed_by: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          id?: string
+          phase_id: string
+          task_text: string
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          id?: string
+          phase_id?: string
+          task_text?: string
+          completed?: boolean | null
+          completed_at?: string | null
+          completed_by?: string | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_timeline_tasks_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "sale_timeline_phases"
             referencedColumns: ["id"]
           },
         ]

@@ -5,9 +5,17 @@ import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import { useUser } from '../hooks/useUser'
 
-type ProfileRow = Tables<'profile'>
-type TodoRow = Tables<'todos'>
-type ContactRow = Tables<'contacts'>
+type ProfileRow        = Tables<'profile'>
+type TodoRow           = Tables<'todos'>
+type ContactRow        = Tables<'contacts'>
+type ImprovementRow    = Tables<'property_improvements'>
+type ReadinessRow      = Tables<'property_readiness_scores'>
+type ScenarioRow       = Tables<'sale_scenarios'>
+type ScenarioItemRow   = Tables<'sale_scenario_items'>
+type PhaseRow          = Tables<'sale_timeline_phases'>
+type TimelineTaskRow   = Tables<'sale_timeline_tasks'>
+type ScenarioWithItems = ScenarioRow & { sale_scenario_items: ScenarioItemRow[] }
+type PhaseWithTasks    = PhaseRow    & { sale_timeline_tasks: TimelineTaskRow[] }
 
 type SaleStatus = 'Pre-Market' | 'Listed' | 'Showings Active' | 'Offer Received' | 'Under Contract' | 'Closed'
 
@@ -45,22 +53,43 @@ function fmt(n: number) {
 
 export default function Selling() {
   const { userName } = useUser()
-  const [profile, setProfile] = useState<ProfileRow[]>([])
-  const [todos, setTodos] = useState<TodoRow[]>([])
-  const [contacts, setContacts] = useState<ContactRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [profile, setProfile]           = useState<ProfileRow[]>([])
+  const [todos, setTodos]               = useState<TodoRow[]>([])
+  const [contacts, setContacts]         = useState<ContactRow[]>([])
+  const [improvements, setImprovements] = useState<ImprovementRow[]>([])
+  const [readiness, setReadiness]       = useState<ReadinessRow[]>([])
+  const [scenarios, setScenarios]       = useState<ScenarioWithItems[]>([])
+  const [phases, setPhases]             = useState<PhaseWithTasks[]>([])
+  const [loading, setLoading]           = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      supabase.from('profile').select('*'),
-      supabase.from('todos').select('*').like('tier', 'sell_%').order('sort_order', { ascending: true }),
-      supabase.from('contacts').select('*').eq('role', 'Listing Agent'),
-    ]).then(([{ data: p }, { data: t }, { data: c }]) => {
+    async function load() {
+      const [{ data: p }, { data: t }, { data: c }] = await Promise.all([
+        supabase.from('profile').select('*'),
+        supabase.from('todos').select('*').like('tier', 'sell_%').order('sort_order', { ascending: true }),
+        supabase.from('contacts').select('*').eq('role', 'Listing Agent'),
+      ])
       setProfile(p || [])
       setTodos(t || [])
       setContacts(c || [])
+
+      const propId = (p || []).find(r => r.key === 'sell_property_id')?.value
+      if (propId) {
+        const [{ data: impr }, { data: scores }, { data: scen }, { data: ph }] = await Promise.all([
+          supabase.from('property_improvements').select('*').eq('property_id', propId).order('sort_order', { ascending: true }),
+          supabase.from('property_readiness_scores').select('*').eq('property_id', propId),
+          supabase.from('sale_scenarios').select('*, sale_scenario_items(*)').eq('property_id', propId).order('sort_order', { ascending: true }),
+          supabase.from('sale_timeline_phases').select('*, sale_timeline_tasks(*)').eq('property_id', propId).order('sort_order', { ascending: true }),
+        ])
+        setImprovements(impr || [])
+        setReadiness(scores || [])
+        setScenarios((scen as ScenarioWithItems[]) || [])
+        setPhases((ph as PhaseWithTasks[]) || [])
+      }
+
       setLoading(false)
-    })
+    }
+    load()
   }, [])
 
   function getVal(key: string) {
@@ -85,6 +114,19 @@ export default function Selling() {
     }
     setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, ...updated } : t))
     await supabase.from('todos').update(updated).eq('id', todo.id)
+  }
+
+  async function toggleTimelineTask(task: TimelineTaskRow) {
+    const updated = {
+      completed: !task.completed,
+      completed_at: !task.completed ? new Date().toISOString() : null,
+      completed_by: !task.completed ? userName : null,
+    }
+    setPhases(prev => prev.map(ph => ({
+      ...ph,
+      sale_timeline_tasks: ph.sale_timeline_tasks.map(t => t.id === task.id ? { ...t, ...updated } : t),
+    })))
+    await supabase.from('sale_timeline_tasks').update(updated).eq('id', task.id)
   }
 
   const saleStatus = (getVal('sell_status') || 'Pre-Market') as SaleStatus
@@ -337,6 +379,174 @@ export default function Selling() {
           </div>
         )}
       </div>
+
+      {/* Home Readiness */}
+      {(readiness.length > 0 || improvements.length > 0) && (
+        <div className="card p-5">
+          <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-4">Home Readiness</div>
+
+          {readiness.length > 0 && (
+            <div className="space-y-3 mb-5">
+              {readiness.map(score => (
+                <div key={score.id}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-stone-600 dark:text-stone-400">{score.category}</span>
+                    <span className="font-medium text-stone-700 dark:text-stone-300">
+                      {score.score}%
+                      {score.note && <span className="text-xs text-stone-400 dark:text-stone-500 ml-1.5">· {score.note}</span>}
+                    </span>
+                  </div>
+                  <div className="h-2 bg-stone-100 dark:bg-stone-700 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${score.score >= 80 ? 'bg-teal-500 dark:bg-teal-400' : score.score >= 60 ? 'bg-amber-400' : 'bg-red-400'}`}
+                      style={{ width: `${score.score}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {improvements.length > 0 && (
+            <div className="space-y-2">
+              {improvements.map(imp => (
+                <div key={imp.id} className="flex items-start gap-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
+                  {imp.icon && <span className="text-xl leading-none flex-shrink-0">{imp.icon}</span>}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-stone-800 dark:text-stone-200">{imp.name}</div>
+                    {imp.description && <div className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">{imp.description}</div>}
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    {imp.value_add_low != null && imp.value_add_high != null ? (
+                      <div className="text-xs font-medium text-teal-600 dark:text-teal-400">+{fmt(imp.value_add_low)}–{fmt(imp.value_add_high)}</div>
+                    ) : imp.value_note ? (
+                      <div className="text-xs text-stone-500 dark:text-stone-400">{imp.value_note}</div>
+                    ) : null}
+                    <div className={`text-xs font-medium mt-0.5 ${
+                      imp.status === 'Done'         ? 'text-teal-600 dark:text-teal-400' :
+                      imp.status === 'Needs Action' ? 'text-amber-500 dark:text-amber-400' :
+                                                      'text-stone-400 dark:text-stone-500'
+                    }`}>{imp.status}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selling Scenarios */}
+      {scenarios.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-3">Selling Scenarios</div>
+          <div className="space-y-3">
+            {scenarios.map(scenario => (
+              <div key={scenario.id} className={`card p-5 ${scenario.is_recommended ? 'ring-2 ring-teal-500 dark:ring-teal-400' : ''}`}>
+                <div className="flex items-start justify-between mb-3 gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-stone-800 dark:text-stone-200 text-sm">{scenario.title}</div>
+                    {scenario.description && <div className="text-xs text-stone-400 dark:text-stone-500 mt-0.5">{scenario.description}</div>}
+                  </div>
+                  {scenario.is_recommended && (
+                    <span className="text-xs font-semibold bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400 px-2 py-0.5 rounded-full flex-shrink-0">
+                      Recommended
+                    </span>
+                  )}
+                </div>
+
+                {scenario.sale_scenario_items.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {[...scenario.sale_scenario_items].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).map(item => (
+                      <div key={item.id} className={`flex justify-between text-xs gap-2 ${
+                        item.is_total
+                          ? 'pt-2 border-t border-stone-100 dark:border-stone-700 font-semibold text-stone-700 dark:text-stone-300'
+                          : 'text-stone-500 dark:text-stone-400'
+                      }`}>
+                        <span>{item.label}</span>
+                        <span className="flex-shrink-0">
+                          {item.cost_fixed != null
+                            ? fmt(item.cost_fixed)
+                            : item.cost_low != null && item.cost_high != null
+                              ? `${fmt(item.cost_low)}–${fmt(item.cost_high)}`
+                              : ''}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {scenario.net_proceeds_low != null && scenario.net_proceeds_high != null && (
+                  <div className="flex justify-between text-sm pt-2 border-t border-stone-100 dark:border-stone-700">
+                    <span className="text-stone-600 dark:text-stone-400">Est. Net Proceeds</span>
+                    <span className="font-bold text-teal-600 dark:text-teal-400">
+                      {fmt(scenario.net_proceeds_low)}–{fmt(scenario.net_proceeds_high)}
+                    </span>
+                  </div>
+                )}
+
+                {scenario.warning_note && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                    {scenario.warning_note}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Sale Timeline */}
+      {phases.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-stone-500 dark:text-stone-400 uppercase tracking-wide mb-3">Sale Timeline</div>
+          <div className="space-y-3">
+            {phases.map(phase => {
+              const pending = phase.sale_timeline_tasks.filter(t => !t.completed).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+              const done    = phase.sale_timeline_tasks.filter(t =>  t.completed).sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+              return (
+                <div key={phase.id} className="card overflow-hidden">
+                  <div className="px-4 py-3 bg-stone-50 dark:bg-stone-800/50 border-b border-stone-100 dark:border-stone-700/50 flex items-center gap-2">
+                    <span className="font-semibold text-sm text-stone-700 dark:text-stone-300 flex-1">{phase.title}</span>
+                    <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">{phase.week_label}</span>
+                    {phase.date_range && (
+                      <span className="text-xs text-stone-400 dark:text-stone-500 flex-shrink-0">· {phase.date_range}</span>
+                    )}
+                  </div>
+                  {phase.sale_timeline_tasks.length > 0 && (
+                    <div className="divide-y divide-stone-50 dark:divide-stone-700/30">
+                      {pending.map(task => (
+                        <div key={task.id} className="flex items-start gap-3 px-4 py-3 hover:bg-stone-50 dark:hover:bg-stone-700/20 transition-colors">
+                          <button
+                            onClick={() => toggleTimelineTask(task)}
+                            className="mt-0.5 w-4 h-4 rounded border-2 border-stone-300 dark:border-stone-600 flex-shrink-0 hover:border-teal-500 transition-colors"
+                          />
+                          <span className="text-sm text-stone-700 dark:text-stone-300 flex-1">{task.task_text}</span>
+                        </div>
+                      ))}
+                      {done.map(task => (
+                        <div key={task.id} className="flex items-start gap-3 px-4 py-3 opacity-60">
+                          <button
+                            onClick={() => toggleTimelineTask(task)}
+                            className="mt-0.5 w-4 h-4 rounded bg-teal-500 flex items-center justify-center flex-shrink-0"
+                          >
+                            <Check size={9} className="text-white" strokeWidth={3} />
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm text-stone-400 dark:text-stone-500 line-through">{task.task_text}</span>
+                            {task.completed_by && (
+                              <span className="ml-2 text-xs text-stone-300 dark:text-stone-600">by {task.completed_by}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
     </div>
   )
