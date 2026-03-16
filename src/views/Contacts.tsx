@@ -87,6 +87,25 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   // Conversation log
   const [contactNotes, setContactNotes] = useState<ContactNoteRow[]>([])
   const [loadingNotes, setLoadingNotes] = useState(false)
+  const [expandedNoteIds, setExpandedNoteIds] = useState<Set<string>>(new Set())
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null)
+
+  const NOTE_TRUNCATE_AT = 220
+
+  function toggleNoteExpand(id: string) {
+    setExpandedNoteIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleDeleteNote(id: string) {
+    setDeletingNoteId(id)
+    await supabase.from('contact_notes').delete().eq('id', id)
+    setContactNotes(prev => prev.filter(n => n.id !== id))
+    setDeletingNoteId(null)
+  }
 
   // Add note form
   const [showNoteForm, setShowNoteForm] = useState(false)
@@ -460,26 +479,52 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {contactNotes.map(n => (
-                      <div key={n.id} className="flex gap-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
-                        <div className="flex-shrink-0 pt-0.5">
-                          <span className={`status-badge text-xs ${NOTE_TYPE_STYLES[(n.note_type as NoteType) ?? 'Note']}`}>
-                            {n.note_type ?? 'Note'}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed">{n.content}</div>
-                          {n.amount != null && (
-                            <div className="mt-1 text-sm font-semibold text-green-600 dark:text-green-400">
-                              {formatAmount(n.amount)}
-                            </div>
-                          )}
-                          <div className="mt-1 text-xs text-stone-400 dark:text-stone-500">
-                            {formatDate(n.note_date)}{n.added_by ? ` · ${n.added_by}` : ''}
+                    {contactNotes.map(n => {
+                      const isLong     = (n.content?.length ?? 0) > NOTE_TRUNCATE_AT
+                      const isExpanded = expandedNoteIds.has(n.id)
+                      const isDeleting = deletingNoteId === n.id
+                      const displayContent = isLong && !isExpanded
+                        ? n.content.slice(0, NOTE_TRUNCATE_AT) + '…'
+                        : n.content
+                      return (
+                        <div key={n.id} className="group flex gap-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-800/50">
+                          <div className="flex-shrink-0 pt-0.5">
+                            <span className={`status-badge text-xs ${NOTE_TYPE_STYLES[(n.note_type as NoteType) ?? 'Note']}`}>
+                              {n.note_type ?? 'Note'}
+                            </span>
                           </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-stone-700 dark:text-stone-300 leading-relaxed whitespace-pre-wrap">
+                              {displayContent}
+                            </div>
+                            {isLong && (
+                              <button
+                                onClick={() => toggleNoteExpand(n.id)}
+                                className="text-xs text-teal-600 dark:text-teal-400 hover:underline mt-0.5"
+                              >
+                                {isExpanded ? 'Show less' : 'Show more'}
+                              </button>
+                            )}
+                            {n.amount != null && (
+                              <div className="mt-1 text-sm font-semibold text-green-600 dark:text-green-400">
+                                {formatAmount(n.amount)}
+                              </div>
+                            )}
+                            <div className="mt-1 text-xs text-stone-400 dark:text-stone-500">
+                              {formatDate(n.note_date)}{n.added_by ? ` · ${n.added_by}` : ''}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteNote(n.id)}
+                            disabled={isDeleting}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity self-start mt-0.5 text-stone-300 hover:text-red-500 dark:text-stone-600 dark:hover:text-red-400 disabled:opacity-50"
+                            title="Delete note"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
