@@ -99,10 +99,17 @@ Deno.serve(async (req) => {
       async start(controller) {
         const encoder = new TextEncoder();
 
+        // Wrap enqueue so a disconnected client never throws and corrupts
+        // the DB status — generation continues and saves even if the SSE
+        // stream is cancelled mid-flight.
         const send = (payload: object) => {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(payload)}\n\n`),
-          );
+          try {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(payload)}\n\n`),
+            );
+          } catch {
+            // client disconnected; ignore
+          }
         };
 
         // Send the report ID first so the client can watch Realtime
@@ -153,7 +160,7 @@ Deno.serve(async (req) => {
 
           send({ type: "error", message: msg });
         } finally {
-          controller.close();
+          try { controller.close(); } catch { /* already closed */ }
         }
       },
     });
