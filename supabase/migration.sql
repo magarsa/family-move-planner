@@ -315,13 +315,10 @@ create table if not exists reports (
 );
 
 -- auto-update updated_at (reuses the trg_set_updated_at function defined above)
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname = 'reports_updated_at') then
-    create trigger reports_updated_at
-      before update on reports
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists reports_updated_at on reports;
+create trigger reports_updated_at
+  before update on reports
+  for each row execute function trg_set_updated_at();
 
 -- add to realtime so the React app sees status changes live
 do $$ begin
