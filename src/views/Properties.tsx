@@ -21,13 +21,13 @@ type SchoolRow = Tables<'schools'>
 
 type PropertyStatus = 'Considering' | 'Visit Scheduled' | 'Visited' | 'Offer Made' | 'Ruled Out' | 'Secured'
 
-const STATUS_STYLES: Record<PropertyStatus, { badge: string; icon: ReactNode; label: string }> = {
-  'Considering':     { badge: 'bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-300',   icon: <Circle size={12} />,   label: 'Considering' },
-  'Visit Scheduled': { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',    icon: <Calendar size={12} />, label: 'Visit Scheduled' },
-  'Visited':         { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: <Eye size={12} />,      label: 'Visited' },
-  'Offer Made':      { badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300', icon: <DollarSign size={12} />, label: 'Offer Made' },
-  'Ruled Out':       { badge: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',         icon: <X size={12} />,        label: 'Ruled Out' },
-  'Secured':         { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',     icon: <Check size={12} />,    label: 'Secured' },
+const STATUS_STYLES: Record<PropertyStatus, { badge: string; icon: ReactNode; label: string; dot: string }> = {
+  'Considering':     { badge: 'bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-300',        icon: <Circle size={12} />,      label: 'Considering',     dot: 'bg-stone-400' },
+  'Visit Scheduled': { badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',         icon: <Calendar size={12} />,    label: 'Visit Scheduled', dot: 'bg-blue-500' },
+  'Visited':         { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',     icon: <Eye size={12} />,         label: 'Visited',         dot: 'bg-amber-500' },
+  'Offer Made':      { badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300', icon: <DollarSign size={12} />,  label: 'Offer Made',      dot: 'bg-purple-500' },
+  'Ruled Out':       { badge: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300',             icon: <X size={12} />,           label: 'Ruled Out',       dot: 'bg-red-500' },
+  'Secured':         { badge: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',         icon: <Check size={12} />,       label: 'Secured',         dot: 'bg-teal-500' },
 }
 
 function formatPrice(price: number | null) {
@@ -539,9 +539,10 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
         className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-stone-50 dark:hover:bg-stone-800/50 transition-colors"
         onClick={() => setOpen(!open)}
       >
-        <span className={`status-badge ${style.badge} flex items-center gap-1 flex-shrink-0`}>
-          {style.icon} {style.label}
-        </span>
+        <span
+          title={style.label}
+          className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${style.dot}`}
+        />
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-stone-800 dark:text-stone-100 truncate">{property.address}</div>
           {property.area && (
