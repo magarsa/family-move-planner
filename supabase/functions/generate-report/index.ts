@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         try {
           const claudeStream = claude.messages.stream({
             model:      "claude-sonnet-4-6",
-            max_tokens: 16000,
+            max_tokens: 8000,
             system,
             messages:   [{ role: "user", content: userMessage }],
           });
