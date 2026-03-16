@@ -86,25 +86,15 @@ create index if not exists notes_created_at_idx on notes(created_at desc);
 create index if not exists whatifs_status_idx   on whatifs(status);
 
 -- updated_at triggers for tables that have the column
-do $$ begin
-  if not exists (
-    select 1 from pg_trigger where tgname = 'set_updated_at_branches'
-  ) then
-    create trigger set_updated_at_branches
-      before update on branches
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_branches on branches;
+create trigger set_updated_at_branches
+  before update on branches
+  for each row execute function trg_set_updated_at();
 
-do $$ begin
-  if not exists (
-    select 1 from pg_trigger where tgname = 'set_updated_at_whatifs'
-  ) then
-    create trigger set_updated_at_whatifs
-      before update on whatifs
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_whatifs on whatifs;
+create trigger set_updated_at_whatifs
+  before update on whatifs
+  for each row execute function trg_set_updated_at();
 
 -- Enable real-time (idempotent — silently skips if table already in publication)
 do $$ begin
@@ -198,25 +188,15 @@ create index if not exists schools_status_idx       on schools(status);
 create index if not exists schools_area_idx         on schools(area);
 
 -- updated_at triggers for new tables
-do $$ begin
-  if not exists (
-    select 1 from pg_trigger where tgname = 'set_updated_at_properties'
-  ) then
-    create trigger set_updated_at_properties
-      before update on properties
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_properties on properties;
+create trigger set_updated_at_properties
+  before update on properties
+  for each row execute function trg_set_updated_at();
 
-do $$ begin
-  if not exists (
-    select 1 from pg_trigger where tgname = 'set_updated_at_schools'
-  ) then
-    create trigger set_updated_at_schools
-      before update on schools
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_schools on schools;
+create trigger set_updated_at_schools
+  before update on schools
+  for each row execute function trg_set_updated_at();
 
 -- Enable real-time (idempotent)
 do $$ begin
@@ -269,15 +249,10 @@ create index if not exists contacts_role_idx         on contacts(role);
 create index if not exists contacts_status_idx       on contacts(status);
 create index if not exists contact_notes_contact_idx on contact_notes(contact_id);
 
-do $$ begin
-  if not exists (
-    select 1 from pg_trigger where tgname = 'set_updated_at_contacts'
-  ) then
-    create trigger set_updated_at_contacts
-      before update on contacts
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_contacts on contacts;
+create trigger set_updated_at_contacts
+  before update on contacts
+  for each row execute function trg_set_updated_at();
 
 do $$ begin
   alter publication supabase_realtime add table contacts;
@@ -315,13 +290,10 @@ create table if not exists reports (
 );
 
 -- auto-update updated_at (reuses the trg_set_updated_at function defined above)
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname = 'reports_updated_at') then
-    create trigger reports_updated_at
-      before update on reports
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists reports_updated_at on reports;
+create trigger reports_updated_at
+  before update on reports
+  for each row execute function trg_set_updated_at();
 
 -- add to realtime so the React app sees status changes live
 do $$ begin
@@ -456,29 +428,20 @@ create index if not exists sale_timeline_tasks_phase_idx        on sale_timeline
 -- Section 4: updated_at triggers (reuses existing function)
 -- ============================================================
 
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname = 'set_updated_at_property_improvements') then
-    create trigger set_updated_at_property_improvements
-      before update on property_improvements
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_property_improvements on property_improvements;
+create trigger set_updated_at_property_improvements
+  before update on property_improvements
+  for each row execute function trg_set_updated_at();
 
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname = 'set_updated_at_property_readiness_scores') then
-    create trigger set_updated_at_property_readiness_scores
-      before update on property_readiness_scores
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_property_readiness_scores on property_readiness_scores;
+create trigger set_updated_at_property_readiness_scores
+  before update on property_readiness_scores
+  for each row execute function trg_set_updated_at();
 
-do $$ begin
-  if not exists (select 1 from pg_trigger where tgname = 'set_updated_at_sale_scenarios') then
-    create trigger set_updated_at_sale_scenarios
-      before update on sale_scenarios
-      for each row execute function trg_set_updated_at();
-  end if;
-end $$;
+drop trigger if exists set_updated_at_sale_scenarios on sale_scenarios;
+create trigger set_updated_at_sale_scenarios
+  before update on sale_scenarios
+  for each row execute function trg_set_updated_at();
 
 
 -- ============================================================
