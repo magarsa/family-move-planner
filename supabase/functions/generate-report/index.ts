@@ -127,26 +127,27 @@ Deno.serve(async (req) => {
             }
           }
 
-          const finalMessage = await claudeStream.finalMessage();
-
           // Append closing HTML
           accumulatedHtml += footer;
           send({ type: "chunk", text: footer });
 
-          // Persist
+          // Signal done to client immediately — DB write must not block this
+          send({ type: "done", reportId });
+          try { controller.close(); } catch { /* already closed */ }
+
+          // Persist in background after client is unblocked
+          const finalMessage = await claudeStream.finalMessage().catch(() => null);
           await supabase
             .from("reports")
             .update({
               status:       "complete",
               html_content: accumulatedHtml,
-              metadata: {
+              metadata: finalMessage ? {
                 input_tokens:  finalMessage.usage.input_tokens,
                 output_tokens: finalMessage.usage.output_tokens,
-              },
+              } : {},
             })
             .eq("id", reportId);
-
-          send({ type: "done", reportId });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           await supabase.from("reports").update({ status: "error", error_message: msg }).eq("id", reportId);
