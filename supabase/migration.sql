@@ -315,12 +315,19 @@ create table if not exists reports (
 );
 
 -- auto-update updated_at (reuses the trg_set_updated_at function defined above)
-create trigger reports_updated_at
-  before update on reports
-  for each row execute function trg_set_updated_at();
+do $$ begin
+  if not exists (select 1 from pg_trigger where tgname = 'reports_updated_at') then
+    create trigger reports_updated_at
+      before update on reports
+      for each row execute function trg_set_updated_at();
+  end if;
+end $$;
 
 -- add to realtime so the React app sees status changes live
-alter publication supabase_realtime add table reports;
+do $$ begin
+  alter publication supabase_realtime add table reports;
+exception when duplicate_object then null;
+end $$;
 
 -- index for listing by type + date
 create index if not exists reports_type_created on reports (report_type, created_at desc);
