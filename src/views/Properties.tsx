@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Trash2, Plus, X, ExternalLink, Calendar, Pencil } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Trash2, Plus, X, ExternalLink, Calendar, Pencil, Calculator } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -9,6 +9,7 @@ import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
 import OfferTracker from '../components/OfferTracker'
+import PropertyCalcModal from '../components/PropertyCalcModal'
 import { lookupProperty } from '../lib/lookupProperty'
 import type { ProximityData, NearbySchool } from '../lib/lookupProperty'
 import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
@@ -385,6 +386,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const [linkedSchools, setLinkedSchools] = useState<SchoolRow[]>([])
   const [schoolsLoaded, setSchoolsLoaded] = useState(false)
   const [loadingSnapshot, setLoadingSnapshot] = useState(false)
+  const [calcOpen, setCalcOpen] = useState(false)
 
   const status = (property.status || 'Considering') as PropertyStatus
   const style = STATUS_STYLES[status]
@@ -530,6 +532,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const isVisitPast = property.visit_at ? new Date(property.visit_at) < new Date() : false
 
   return (
+    <>
     <div className={`card overflow-hidden transition-shadow ${open ? 'shadow-md' : ''}`}>
       {/* Header row */}
       <button
@@ -579,6 +582,15 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
         >
           <ExternalLink size={14} />
         </a>
+        {property.price && (
+          <button
+            onClick={e => { e.stopPropagation(); setCalcOpen(true) }}
+            title="Quick mortgage calc"
+            className="flex-shrink-0 p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
+          >
+            <Calculator size={14} />
+          </button>
+        )}
         {open ? <ChevronUp size={16} className="text-stone-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-stone-400 flex-shrink-0" />}
       </button>
 
@@ -828,6 +840,8 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
         )}
       </AnimatePresence>
     </div>
+    {calcOpen && <PropertyCalcModal property={property} onClose={() => setCalcOpen(false)} />}
+  </>
   )
 }
 

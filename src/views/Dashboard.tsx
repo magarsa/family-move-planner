@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CheckSquare, GitBranch, HelpCircle, BookOpen, AlertTriangle, ArrowRight, Zap, Home, GraduationCap, Calendar, Download } from 'lucide-react'
 import { exportMoveCalendar } from '../lib/exportCalendar'
-import FinancialSnapshot from '../components/FinancialSnapshot'
 import DeadlinesWidget from '../components/DeadlinesWidget'
 import { motion } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -285,15 +284,6 @@ export default function Dashboard() {
             subtitle={totalWhatifs > 0 ? `${whatifPct}%` : 'none'}
           />
         </div>
-      </motion.div>
-
-      {/* ── SECTION 3: Financial Snapshot ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <FinancialSnapshot profile={profile} />
       </motion.div>
 
       {/* ── SECTION 4: Critical Dates ── */}
