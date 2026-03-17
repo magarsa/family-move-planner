@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ChevronDown, ChevronUp, Check, Minus, Circle, Loader2, Save, Home, Plus, X, Pencil } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type BranchRow = Tables<'branches'>
@@ -428,6 +429,7 @@ export default function Branches() {
           <BranchCard key={branch.id} branch={branch} onUpdate={handleUpdate} onDelete={handleDelete} />
         ))}
       </div>
+      <ScrollToTopButton />
     </div>
   )
 }

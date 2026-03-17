@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2, UserCheck, ArrowUp } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2, UserCheck } from 'lucide-react'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 
@@ -52,7 +52,6 @@ export default function Communications() {
   const [filterSource,  setFilterSource]  = useState<'All' | 'Auto' | 'Manual'>('All')
 
   const [visibleCount, setVisibleCount] = useState(BATCH)
-  const [showScrollTop, setShowScrollTop] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const filterRef   = useRef<HTMLDivElement>(null)
 
@@ -128,16 +127,6 @@ export default function Communications() {
   const grouped = useMemo(() => groupByDay(visibleNotes), [visibleNotes])
 
   useEffect(() => { setVisibleCount(BATCH) }, [filterType, filterContact, filterSource])
-
-  useEffect(() => {
-    const el = filterRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(([entry]) => {
-      setShowScrollTop(!entry.isIntersecting)
-    })
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
 
   useEffect(() => {
     const el = sentinelRef.current
@@ -396,21 +385,7 @@ export default function Communications() {
         </p>
       )}
 
-      <AnimatePresence>
-        {showScrollTop && (
-          <motion.button
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 8 }}
-            transition={{ duration: 0.15 }}
-            onClick={() => window.scrollTo(0, 0)}
-            aria-label="Back to top"
-            className="fixed bottom-6 right-6 z-40 p-2.5 rounded-full bg-stone-800 dark:bg-stone-100 text-white dark:text-stone-900 shadow-lg hover:bg-stone-700 dark:hover:bg-stone-200 transition-colors"
-          >
-            <ArrowUp size={16} />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      <ScrollToTopButton />
     </div>
   )
 }

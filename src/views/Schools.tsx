@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { ChevronDown, ChevronUp, Check, Minus, Circle, GraduationCap, Loader2, Save, Trash2, Plus, X, ExternalLink, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -619,6 +620,7 @@ export default function Schools() {
           ))
         )}
       </div>
+      <ScrollToTopButton />
     </div>
   )
 }
