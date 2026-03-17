@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Loader2, Check, ExternalLink, Plus, ChevronRight } from 'lucide-react'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -547,7 +548,7 @@ export default function Selling() {
           </div>
         </div>
       )}
-
+      <ScrollToTopButton />
     </div>
   )
 }

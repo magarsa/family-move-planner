@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2, UserCheck } from 'lucide-react'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 
@@ -52,6 +53,7 @@ export default function Communications() {
 
   const [visibleCount, setVisibleCount] = useState(BATCH)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const filterRef   = useRef<HTMLDivElement>(null)
 
   const [expandedIds,   setExpandedIds]   = useState<Set<string>>(new Set())
   const [deletingId,    setDeletingId]    = useState<string | null>(null)
@@ -199,7 +201,7 @@ export default function Communications() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div ref={filterRef} className="flex flex-wrap items-center gap-2">
         <Filter size={14} className="text-stone-400 shrink-0" />
         <select
           value={filterContact}
@@ -382,6 +384,8 @@ export default function Communications() {
           All {filtered.length} entries shown
         </p>
       )}
+
+      <ScrollToTopButton />
     </div>
   )
 }

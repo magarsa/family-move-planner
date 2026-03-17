@@ -3,6 +3,7 @@ import {
   ChevronDown, ChevronUp, Phone, Mail, Globe, Building2,
   Save, Loader2, Trash2, Plus, Link as LinkIcon, X, User,
 } from 'lucide-react'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { METRO_AREAS, METRO_FILTERS } from '../lib/metroAreas'
 import type { MetroFilter } from '../lib/metroAreas'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -824,6 +825,7 @@ export default function Contacts() {
           ))
         )}
       </div>
+      <ScrollToTopButton />
     </div>
   )
 }

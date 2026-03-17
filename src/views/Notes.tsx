@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { Loader2, BookOpen, Send } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type NoteRow = Tables<'notes'>
@@ -192,6 +193,7 @@ export default function Notes() {
           </div>
         </div>
       </div>
+      <ScrollToTopButton />
     </div>
   )
 }

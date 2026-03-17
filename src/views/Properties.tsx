@@ -10,6 +10,7 @@ import { useUser } from '../hooks/useUser'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
 import OfferTracker from '../components/OfferTracker'
 import PropertyCalcModal from '../components/PropertyCalcModal'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { lookupProperty } from '../lib/lookupProperty'
 import type { ProximityData, NearbySchool } from '../lib/lookupProperty'
 import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
@@ -1230,6 +1231,7 @@ export default function Properties() {
           </div>
         </div>
       )}
+      <ScrollToTopButton />
     </div>
   )
 }

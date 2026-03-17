@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, Fragment } from 'react'
 import { Plus, Check, Trash2, Loader2, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type TodoRow = Tables<'todos'>
@@ -440,6 +441,7 @@ export default function Todos() {
           )
         })}
       </div>
+      <ScrollToTopButton />
     </div>
   )
 }

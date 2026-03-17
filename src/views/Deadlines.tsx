@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Clock, Plus, Check, Trash2, AlertTriangle, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import { useUser } from '../hooks/useUser'
@@ -324,6 +325,7 @@ export default function Deadlines() {
           </AnimatePresence>
         </div>
       )}
+      <ScrollToTopButton />
     </div>
   )
 }

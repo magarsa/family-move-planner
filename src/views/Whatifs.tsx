@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Loader2, Save, Trash2, AlertTriangle, Pencil, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type WhatIfRow = Tables<'whatifs'>
@@ -340,6 +341,7 @@ export default function Whatifs() {
           </AnimatePresence>
         </div>
       )}
+      <ScrollToTopButton />
     </div>
   )
 }
