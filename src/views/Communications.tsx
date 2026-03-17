@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2, UserCheck } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
@@ -22,6 +22,8 @@ const NOTE_TYPE_STYLES: Record<string, { badge: string; icon: React.ElementType 
 }
 
 const ALL_NOTE_TYPES: NoteType[] = ['Call', 'Email', 'Meeting', 'Estimate', 'Note', 'Other']
+
+const BATCH = 8
 
 function formatAmount(amount: number | null) {
   if (amount == null) return null
@@ -47,6 +49,9 @@ export default function Communications() {
   const [filterType,    setFilterType]    = useState<NoteType | 'All'>('All')
   const [filterContact, setFilterContact] = useState<string>('All')
   const [filterSource,  setFilterSource]  = useState<'All' | 'Auto' | 'Manual'>('All')
+
+  const [visibleCount, setVisibleCount] = useState(BATCH)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   const [expandedIds,   setExpandedIds]   = useState<Set<string>>(new Set())
   const [deletingId,    setDeletingId]    = useState<string | null>(null)
@@ -116,7 +121,20 @@ export default function Communications() {
     })
   }, [notes, filterType, filterContact, filterSource])
 
-  const grouped = useMemo(() => groupByDay(filtered), [filtered])
+  const visibleNotes = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
+  const grouped = useMemo(() => groupByDay(visibleNotes), [visibleNotes])
+
+  useEffect(() => { setVisibleCount(BATCH) }, [filterType, filterContact, filterSource])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setVisibleCount(c => Math.min(c + BATCH, filtered.length))
+    }, { rootMargin: '200px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [filtered.length])
 
   const totalEstimates = useMemo(() =>
     notes.filter(n => n.note_type === 'Estimate' && n.amount).reduce((s, n) => s + (n.amount ?? 0), 0),
@@ -352,6 +370,17 @@ export default function Communications() {
             </div>
           ))}
         </div>
+      )}
+
+      {visibleCount < filtered.length && (
+        <div ref={sentinelRef} className="py-4 flex justify-center">
+          <span className="text-xs text-stone-400 dark:text-stone-500">Loading more…</span>
+        </div>
+      )}
+      {visibleCount >= filtered.length && filtered.length > BATCH && (
+        <p className="text-center text-xs text-stone-400 dark:text-stone-500 py-4">
+          All {filtered.length} entries shown
+        </p>
       )}
     </div>
   )
