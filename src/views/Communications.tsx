@@ -31,7 +31,7 @@ function formatAmount(amount: number | null) {
 function groupByDay(notes: NoteWithContact[]): { label: string; notes: NoteWithContact[] }[] {
   const map = new Map<string, NoteWithContact[]>()
   for (const note of notes) {
-    const d = new Date(note.created_at ?? note.note_date ?? '')
+    const d = new Date(note.note_date ?? note.created_at ?? '')
     const key = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
     if (!map.has(key)) map.set(key, [])
     map.get(key)!.push(note)
@@ -87,9 +87,12 @@ export default function Communications() {
         supabase.from('contacts').select('*'),
       ])
       const contactMap = Object.fromEntries((c ?? []).map(ct => [ct.id, ct]))
+      const effective = (n: { note_date?: string | null; created_at?: string | null }) =>
+        new Date(n.note_date ?? n.created_at ?? '').getTime()
       const joined: NoteWithContact[] = (cn ?? [])
         .filter(n => contactMap[n.contact_id])
         .map(n => ({ ...n, contact: contactMap[n.contact_id] }))
+        .sort((a, b) => effective(b) - effective(a))
       setNotes(joined)
       setContacts(c ?? [])
       setLoading(false)
