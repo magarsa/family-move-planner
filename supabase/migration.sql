@@ -757,11 +757,15 @@ create index if not exists deadlines_deadline_at_idx on deadlines(deadline_at);
 create index if not exists deadlines_completed_idx   on deadlines(completed);
 create index if not exists deadlines_property_id_idx on deadlines(property_id);
 
+drop trigger if exists deadlines_updated_at on deadlines;
 create trigger deadlines_updated_at
   before update on deadlines
-  for each row execute function update_updated_at();
+  for each row execute function trg_set_updated_at();
 
-alter publication supabase_realtime add table deadlines;
+do $$ begin
+  alter publication supabase_realtime add table deadlines;
+exception when duplicate_object then null;
+end $$;
 
 -- ============================================================
 -- Offer Tracker table
@@ -785,8 +789,12 @@ create table if not exists offers (
 create index if not exists offers_property_id_idx on offers(property_id);
 create index if not exists offers_status_idx       on offers(status);
 
+drop trigger if exists offers_updated_at on offers;
 create trigger offers_updated_at
   before update on offers
-  for each row execute function update_updated_at();
+  for each row execute function trg_set_updated_at();
 
-alter publication supabase_realtime add table offers;
+do $$ begin
+  alter publication supabase_realtime add table offers;
+exception when duplicate_object then null;
+end $$;

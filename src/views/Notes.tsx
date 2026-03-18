@@ -7,6 +7,7 @@ import type { Tables } from '../types/database'
 type NoteRow = Tables<'notes'>
 
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -32,7 +33,7 @@ const AUTHOR_COLORS: Record<string, string> = {
 }
 
 export default function Notes() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [notes, setNotes] = useState<NoteRow[]>([])
   const [loading, setLoading] = useState(true)
   const [content, setContent] = useState('')
@@ -41,6 +42,7 @@ export default function Notes() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   async function fetchNotes() {
+    if (isDemoMode) { setNotes(DEMO_DATA.notes as any); setLoading(false); return }
     const { data } = await supabase.from('notes').select('*').order('created_at', { ascending: true })
     setNotes(data || [])
     setLoading(false)
@@ -48,6 +50,7 @@ export default function Notes() {
 
   useEffect(() => {
     fetchNotes()
+    if (isDemoMode) return
     const ch = supabase.channel('notes-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, fetchNotes)
       .subscribe()
@@ -59,6 +62,7 @@ export default function Notes() {
   }, [notes.length])
 
   async function addNote() {
+    if (isDemoMode) return
     if (!content.trim()) return
     setSaving(true)
     const newNote = { content: content.trim(), author: userName }

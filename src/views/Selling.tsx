@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type ProfileRow        = Tables<'profile'>
 type TodoRow           = Tables<'todos'>
@@ -53,7 +54,7 @@ function fmt(n: number) {
 }
 
 export default function Selling() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [profile, setProfile]           = useState<ProfileRow[]>([])
   const [todos, setTodos]               = useState<TodoRow[]>([])
   const [contacts, setContacts]         = useState<ContactRow[]>([])
@@ -65,6 +66,13 @@ export default function Selling() {
 
   useEffect(() => {
     async function load() {
+      if (isDemoMode) {
+        setProfile(DEMO_DATA.profile as any)
+        setTodos((DEMO_DATA.todos as any[]).filter(t => t.tier?.startsWith('sell_') && !t.parent_id) as any)
+        setContacts((DEMO_DATA.contacts as any[]).filter(c => c.role === 'Listing Agent') as any)
+        setLoading(false)
+        return
+      }
       const [{ data: p }, { data: t }, { data: c }] = await Promise.all([
         supabase.from('profile').select('*'),
         supabase.from('todos').select('*').like('tier', 'sell_%').is('parent_id', null).order('sort_order', { ascending: true }),
@@ -98,6 +106,7 @@ export default function Selling() {
   }
 
   async function setSaleStatus(status: SaleStatus) {
+    if (isDemoMode) return
     const patch = { key: 'sell_status', value: status, updated_by: userName, updated_at: new Date().toISOString() }
     setProfile(prev => {
       const exists = prev.find(r => r.key === 'sell_status')
@@ -108,6 +117,7 @@ export default function Selling() {
   }
 
   async function toggleTodo(todo: TodoRow) {
+    if (isDemoMode) return
     const updated = {
       completed: !todo.completed,
       completed_at: !todo.completed ? new Date().toISOString() : null,
@@ -118,6 +128,7 @@ export default function Selling() {
   }
 
   async function toggleTimelineTask(task: TimelineTaskRow) {
+    if (isDemoMode) return
     const updated = {
       completed: !task.completed,
       completed_at: !task.completed ? new Date().toISOString() : null,

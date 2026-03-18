@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
 
 import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
@@ -39,7 +40,7 @@ interface SchoolCardProps {
 }
 
 function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete }: SchoolCardProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [open, setOpen] = useState(autoOpen ?? false)
   const cardRef = useRef<HTMLDivElement>(null)
 
@@ -68,6 +69,7 @@ function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete 
   const analysis = school.ai_analysis as unknown as AiAnalysis | null
 
   async function save() {
+    if (isDemoMode) return
     setSaving(true)
     const patch: Partial<SchoolRow> = {
       notes: editNotes || null,
@@ -82,6 +84,7 @@ function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete 
   }
 
   async function saveCore() {
+    if (isDemoMode) return
     if (!editName.trim()) return
     setSavingCore(true)
     const patch: Partial<SchoolRow> = {
@@ -100,12 +103,14 @@ function SchoolCard({ school, linkedPropertyCount, autoOpen, onUpdate, onDelete 
   }
 
   async function setStatus(s: SchoolStatus) {
+    if (isDemoMode) return
     const patch: Partial<SchoolRow> = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(school.id, patch)
     await supabase.from('schools').update(patch).eq('id', school.id)
   }
 
   async function handleDelete() {
+    if (isDemoMode) return
     if (!confirm(`Remove "${school.name}" from your list?`)) return
     setDeleting(true)
     onDelete(school.id)
@@ -319,7 +324,7 @@ interface AddSchoolFormProps {
 }
 
 function AddSchoolForm({ onAdd, onClose }: AddSchoolFormProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [name, setName] = useState('')
   const [district, setDistrict] = useState('')
   const [area, setArea] = useState('')
@@ -330,6 +335,7 @@ function AddSchoolForm({ onAdd, onClose }: AddSchoolFormProps) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (isDemoMode) return
     if (!name.trim()) { setErr('School name is required'); return }
     setSubmitting(true)
     const { data, error } = await supabase.from('schools').insert({
@@ -415,6 +421,7 @@ function AddSchoolForm({ onAdd, onClose }: AddSchoolFormProps) {
 // ─── Schools Page ─────────────────────────────────────────────────────────────
 
 export default function Schools() {
+  const { isDemoMode } = useUser()
   const [schools, setSchools] = useState<SchoolRow[]>([])
   const [linkedCounts, setLinkedCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -436,6 +443,7 @@ export default function Schools() {
   const openId = searchParams.get('open')
 
   async function fetchSchools() {
+    if (isDemoMode) { setSchools(DEMO_DATA.schools as any); setLoading(false); return }
     const { data } = await supabase
       .from('schools')
       .select('*')
@@ -445,6 +453,7 @@ export default function Schools() {
   }
 
   async function fetchLinkedCounts() {
+    if (isDemoMode) return
     const { data } = await supabase.from('property_schools').select('school_id')
     if (data) {
       const counts: Record<string, number> = {}
@@ -456,6 +465,7 @@ export default function Schools() {
   useEffect(() => {
     fetchSchools()
     fetchLinkedCounts()
+    if (isDemoMode) return
     const ch = supabase.channel('schools-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'schools' }, fetchSchools)
       .subscribe()

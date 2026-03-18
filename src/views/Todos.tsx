@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 type TodoRow = Tables<'todos'>
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type Tier = 'Do First' | 'Do Soon' | 'Do When Ready' | 'Later'
 type SellTier = 'sell_Do First' | 'sell_Do Soon' | 'sell_Do When Ready' | 'sell_Later'
@@ -31,7 +32,7 @@ interface AddingState {
 }
 
 export default function Todos() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [todos, setTodos] = useState<TodoRow[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState<AddingState | null>(null)
@@ -44,6 +45,7 @@ export default function Todos() {
   const addSubtaskInputRef = useRef<HTMLInputElement>(null)
 
   async function fetchTodos() {
+    if (isDemoMode) { setTodos(DEMO_DATA.todos as any); setLoading(false); return }
     const { data } = await supabase
       .from('todos')
       .select('*')
@@ -55,6 +57,7 @@ export default function Todos() {
 
   useEffect(() => {
     fetchTodos()
+    if (isDemoMode) return
     const ch = supabase.channel('todos-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, fetchTodos)
       .subscribe()
@@ -70,6 +73,7 @@ export default function Todos() {
   }, [addingSubtask])
 
   async function toggleTodo(todo: TodoRow) {
+    if (isDemoMode) return
     const now = new Date().toISOString()
     const updated = {
       completed: !todo.completed,
@@ -81,6 +85,7 @@ export default function Todos() {
   }
 
   async function addTodo() {
+    if (isDemoMode) return
     if (!adding || !adding.text.trim()) {
       setAdding(null)
       return
@@ -105,6 +110,7 @@ export default function Todos() {
   }
 
   async function addSubtask() {
+    if (isDemoMode) return
     if (!addingSubtask?.text.trim()) { setAddingSubtask(null); return }
     const parent = todos.find(t => t.id === addingSubtask.parentId)
     if (!parent) { setAddingSubtask(null); return }
@@ -128,6 +134,7 @@ export default function Todos() {
   }
 
   async function deleteTodo(id: string) {
+    if (isDemoMode) return
     setTodos(prev => prev.filter(t => t.id !== id && t.parent_id !== id))
     await supabase.from('todos').delete().eq('id', id)
   }
@@ -138,6 +145,7 @@ export default function Todos() {
   }
 
   async function saveEdit(id: string) {
+    if (isDemoMode) return
     if (!editText.trim()) { setEditingId(null); return }
     setTodos(prev => prev.map(t => t.id === id ? { ...t, text: editText.trim() } : t))
     setEditingId(null)

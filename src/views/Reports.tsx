@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../lib/supabase";
+import { useUser } from "../hooks/useUser";
 import { streamReport } from "../lib/reportStream";
 import { ReportViewer } from "../components/ReportViewer";
 import {
@@ -54,6 +55,7 @@ function timeAgo(iso: string): string {
 
 export default function Reports() {
   // Who is currently using the app (from your existing auth pattern)
+  const { isDemoMode } = useUser()
   const userName = localStorage.getItem("userName") ?? "Unknown";
 
   // ── Active generation state ────────────────────────────────────────────────
@@ -70,6 +72,7 @@ export default function Reports() {
 
   // ── Fetch initial history ──────────────────────────────────────────────────
   useEffect(() => {
+    if (isDemoMode) { setHistory([]); return; }
     supabase
       .from("reports")
       .select("*")
@@ -80,6 +83,7 @@ export default function Reports() {
 
   // ── Subscribe to Realtime changes on `reports` ────────────────────────────
   useEffect(() => {
+    if (isDemoMode) return;
     const channel = supabase
       .channel("reports-realtime")
       .on(
@@ -107,6 +111,7 @@ export default function Reports() {
 
   // ── Start a new generation ─────────────────────────────────────────────────
   const generate = useCallback((type: ReportType) => {
+    if (isDemoMode) return;
     // Cancel any in-flight stream
     abortRef.current?.abort();
 

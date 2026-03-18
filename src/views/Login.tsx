@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { FlaskConical } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { useUser } from '../hooks/useUser'
 
 interface Props {
   authError?: string | null
 }
 
 export default function Login({ authError }: Props) {
+  const { enterDemoMode } = useUser()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -21,7 +24,6 @@ export default function Login({ authError }: Props) {
       setError(authErr.message)
       setLoading(false)
     }
-    // On success, browser redirects to Google — no further state needed
   }
 
   return (
@@ -39,9 +41,9 @@ export default function Login({ authError }: Props) {
           <div className="mt-3 h-px bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
         </div>
 
-        <div className="card p-8">
+        <div className="card p-8 flex flex-col gap-3">
           {(authError || error) && (
-            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {authError || error}
             </div>
           )}
@@ -59,7 +61,21 @@ export default function Login({ authError }: Props) {
             {loading ? 'Redirecting…' : 'Sign in with Google'}
           </button>
 
-          <p className="mt-5 text-xs text-stone-400">
+          <div className="relative flex items-center gap-3 my-1">
+            <div className="flex-1 h-px bg-stone-200" />
+            <span className="text-xs text-stone-400">or</span>
+            <div className="flex-1 h-px bg-stone-200" />
+          </div>
+
+          <button
+            onClick={enterDemoMode}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3 text-sm font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-700 hover:border-stone-400 transition-all"
+          >
+            <FlaskConical size={15} />
+            Try Demo — no sign in required
+          </button>
+
+          <p className="text-xs text-stone-400 mt-1">
             Access is restricted to family members only.
           </p>
         </div>

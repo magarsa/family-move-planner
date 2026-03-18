@@ -3,6 +3,8 @@ import { Phone, Mail, Users, MessageSquare, Calendar, DollarSign, Filter, Trash2
 import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
+import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type ContactRow = Tables<'contacts'>
 type ContactNoteRow = Tables<'contact_notes'>
@@ -43,6 +45,7 @@ function groupByDay(notes: NoteWithContact[]): { label: string; notes: NoteWithC
 }
 
 export default function Communications() {
+  const { isDemoMode } = useUser()
   const [notes, setNotes]       = useState<NoteWithContact[]>([])
   const [contacts, setContacts] = useState<ContactRow[]>([])
   const [loading, setLoading]   = useState(true)
@@ -70,6 +73,7 @@ export default function Communications() {
   }, [])
 
   async function handleDeleteNote(id: string) {
+    if (isDemoMode) return
     setDeletingId(id)
     await supabase.from('contact_notes').delete().eq('id', id)
     setNotes(prev => prev.filter(n => n.id !== id))
@@ -77,6 +81,7 @@ export default function Communications() {
   }
 
   async function handleReassign(noteId: string, newContactId: string) {
+    if (isDemoMode) return
     setReassigningId(null)
     await supabase.from('contact_notes').update({ contact_id: newContactId }).eq('id', noteId)
     const newContact = contacts.find(c => c.id === newContactId)
@@ -89,6 +94,16 @@ export default function Communications() {
 
   useEffect(() => {
     async function load() {
+      if (isDemoMode) {
+        const contactMap = Object.fromEntries((DEMO_DATA.contacts as any[]).map(ct => [ct.id, ct]))
+        const joined: NoteWithContact[] = (DEMO_DATA.contact_notes as any[])
+          .filter(n => contactMap[n.contact_id])
+          .map(n => ({ ...n, contact: contactMap[n.contact_id] }))
+        setNotes(joined)
+        setContacts(DEMO_DATA.contacts as any)
+        setLoading(false)
+        return
+      }
       const [{ data: cn }, { data: c }] = await Promise.all([
         supabase.from('contact_notes').select('*').order('created_at', { ascending: false }),
         supabase.from('contacts').select('*'),
@@ -105,6 +120,7 @@ export default function Communications() {
       setLoading(false)
     }
     load()
+    if (isDemoMode) return
 
     const ch = supabase
       .channel('comms')

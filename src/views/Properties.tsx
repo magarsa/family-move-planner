@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import type { Tables, Json } from '../types/database'
 import type { AiAnalysis } from '../types/analysis'
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 import AiAnalysisPanel from '../components/AiAnalysisPanel'
 import OfferTracker from '../components/OfferTracker'
 import PropertyCalcModal from '../components/PropertyCalcModal'
@@ -363,7 +364,7 @@ interface PropertyCardProps {
 }
 
 function PropertyCard({ property, branches, schools, onUpdate, onDelete }: PropertyCardProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [editNotes, setEditNotes] = useState(property.notes || '')
@@ -394,6 +395,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const analysis = property.ai_analysis as unknown as AiAnalysis | null
 
   async function save() {
+    if (isDemoMode) return
     setSaving(true)
     const patch: Partial<PropertyRow> = {
       notes: editNotes || null,
@@ -408,6 +410,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   }
 
   async function saveCore() {
+    if (isDemoMode) return
     if (!editAddress.trim()) return
     setSavingCore(true)
     const patch: Partial<PropertyRow> = {
@@ -428,12 +431,14 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   }
 
   async function setStatus(s: PropertyStatus) {
+    if (isDemoMode) return
     const patch: Partial<PropertyRow> = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(property.id, patch)
     await supabase.from('properties').update(patch).eq('id', property.id)
   }
 
   async function scheduleVisit() {
+    if (isDemoMode) return
     if (!scheduleDate) return
     setSchedulingVisit(true)
     const visitAt = new Date(scheduleDate).toISOString()
@@ -456,6 +461,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   }
 
   async function linkBranch(branchId: string | null) {
+    if (isDemoMode) return
     const patch: Partial<PropertyRow> = { branch_id: branchId, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(property.id, patch)
     await supabase.from('properties').update(patch).eq('id', property.id)
@@ -481,12 +487,14 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   }
 
   async function linkSchool(schoolId: string) {
+    if (isDemoMode) return
     await supabase.from('property_schools').insert({ property_id: property.id, school_id: schoolId })
     const school = schools.find(s => s.id === schoolId)
     if (school) setLinkedSchools(prev => [...prev, school])
   }
 
   async function unlinkSchool(schoolId: string) {
+    if (isDemoMode) return
     await supabase.from('property_schools')
       .delete()
       .eq('property_id', property.id)
@@ -499,6 +507,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   }, [open])
 
   async function handleDelete() {
+    if (isDemoMode) return
     if (!confirm(`Remove "${property.address}" from your list?`)) return
     setDeleting(true)
     onDelete(property.id)
@@ -855,7 +864,7 @@ interface AddPropertyFormProps {
 }
 
 function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [address, setAddress] = useState('')
   const [area, setArea] = useState('')
   const [price, setPrice] = useState('')
@@ -908,6 +917,7 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (isDemoMode) return
     if (!address.trim()) { setErr('Address is required'); return }
     setSubmitting(true)
     const { data, error } = await supabase.from('properties').insert({
@@ -1027,6 +1037,7 @@ function AddPropertyForm({ onAdd, onClose }: AddPropertyFormProps) {
 // ─── Properties Page ──────────────────────────────────────────────────────────
 
 export default function Properties() {
+  const { isDemoMode } = useUser()
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [schools, setSchools] = useState<SchoolRow[]>([])
@@ -1046,6 +1057,7 @@ export default function Properties() {
     : METRO_AREAS[metroFilter] ?? []
 
   async function fetchProperties() {
+    if (isDemoMode) { setProperties(DEMO_DATA.properties as any); setLoading(false); return }
     const { data } = await supabase
       .from('properties')
       .select('*')
@@ -1055,11 +1067,13 @@ export default function Properties() {
   }
 
   async function fetchBranches() {
+    if (isDemoMode) { setBranches(DEMO_DATA.branches as any); return }
     const { data } = await supabase.from('branches').select('id, title, status').order('sort_order')
     setBranches((data || []) as BranchRow[])
   }
 
   async function fetchSchools() {
+    if (isDemoMode) { setSchools(DEMO_DATA.schools as any); return }
     const { data } = await supabase
       .from('schools')
       .select('id, name, school_type, grades, area, district')
@@ -1071,6 +1085,7 @@ export default function Properties() {
     fetchProperties()
     fetchBranches()
     fetchSchools()
+    if (isDemoMode) return
     const ch = supabase.channel('properties-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, fetchProperties)
       .subscribe()

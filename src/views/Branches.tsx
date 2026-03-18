@@ -16,6 +16,7 @@ interface BranchOption {
 }
 
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type BranchStatus = 'Open' | 'In Progress' | 'Decided'
 
@@ -33,7 +34,7 @@ interface BranchCardProps {
 }
 
 function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [open, setOpen] = useState(false)
   const [editDecision, setEditDecision] = useState(branch.decision_made || '')
   const [editNotes, setEditNotes] = useState(branch.notes || '')
@@ -49,6 +50,10 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
 
   useEffect(() => {
     if (!open) return
+    if (isDemoMode) {
+      setLinkedProperties((DEMO_DATA.properties as any[]).filter(p => p.branch_id === branch.id) as PropertyRow[])
+      return
+    }
     supabase
       .from('properties')
       .select('id, address, area, status, ai_analysis')
@@ -60,6 +65,7 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
   const style = STATUS_STYLES[status]
 
   async function save() {
+    if (isDemoMode) return
     setSaving(true)
     const patch = {
       decision_made: editDecision || null,
@@ -74,12 +80,14 @@ function BranchCard({ branch, onUpdate, onDelete }: BranchCardProps) {
   }
 
   async function setStatus(s: BranchStatus) {
+    if (isDemoMode) return
     const patch = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(branch.id, patch)
     await supabase.from('branches').update(patch).eq('id', branch.id)
   }
 
   async function saveHeader() {
+    if (isDemoMode) return
     if (!editTitle.trim()) return
     setSavingHeader(true)
     const patch = {
@@ -342,12 +350,13 @@ function AddBranchForm({ onAdd, onCancel }: AddFormProps) {
 }
 
 export default function Branches() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
 
   async function fetchBranches() {
+    if (isDemoMode) { setBranches(DEMO_DATA.branches as any); setLoading(false); return }
     const { data } = await supabase
       .from('branches')
       .select('*')
@@ -358,6 +367,7 @@ export default function Branches() {
 
   useEffect(() => {
     fetchBranches()
+    if (isDemoMode) return
     const ch = supabase.channel('branches-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'branches' }, fetchBranches)
       .subscribe()
@@ -369,11 +379,13 @@ export default function Branches() {
   }
 
   async function handleDelete(id: string) {
+    if (isDemoMode) return
     setBranches(prev => prev.filter(b => b.id !== id))
     await supabase.from('branches').delete().eq('id', id)
   }
 
   async function handleAdd(title: string, description: string) {
+    if (isDemoMode) return
     const maxOrder = branches.reduce((m, b) => Math.max(m, b.sort_order ?? 0), 0)
     const newBranch = {
       title,
