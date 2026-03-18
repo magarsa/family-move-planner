@@ -2,17 +2,22 @@ import { useState, useEffect, useCallback, useContext, createContext, type React
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-export type UserName = 'Safal' | 'Prativa'
+export type UserName = 'Safal' | 'Prativa' | 'Demo'
 
-const ALLOWED_EMAILS: Record<string, UserName> = {
+const ALLOWED_EMAILS: Record<string, 'Safal' | 'Prativa'> = {
   'ranamagar.safal@gmail.com': 'Safal',
   'prati.ranamagar@gmail.com': 'Prativa',
 }
+
+const DEMO_KEY = 'fmp_demo_mode'
 
 interface UserContextValue {
   user: User | null
   userName: UserName | null
   authError: string | null
+  isDemoMode: boolean
+  enterDemoMode: () => void
+  exitDemoMode: () => void
   signOut: () => Promise<void>
   loading: boolean
 }
@@ -22,6 +27,7 @@ const UserContext = createContext<UserContextValue | null>(null)
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [authError, setAuthError] = useState<string | null>(null)
+  const [isDemoMode, setIsDemoMode] = useState(() => sessionStorage.getItem(DEMO_KEY) === '1')
   const [loading, setLoading] = useState(true)
 
   const signOut = useCallback(async () => {
@@ -29,7 +35,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setAuthError(null)
   }, [])
 
+  const enterDemoMode = useCallback(() => {
+    sessionStorage.setItem(DEMO_KEY, '1')
+    setIsDemoMode(true)
+  }, [])
+
+  const exitDemoMode = useCallback(() => {
+    sessionStorage.removeItem(DEMO_KEY)
+    setIsDemoMode(false)
+  }, [])
+
   useEffect(() => {
+    if (isDemoMode) {
+      setLoading(false)
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       const u = session?.user ?? null
       if (u && !ALLOWED_EMAILS[u.email ?? '']) {
@@ -54,12 +75,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [isDemoMode])
 
-  const userName: UserName | null = user?.email ? (ALLOWED_EMAILS[user.email] ?? null) : null
+  const userName: UserName | null = isDemoMode
+    ? 'Demo'
+    : (user?.email ? (ALLOWED_EMAILS[user.email] ?? null) : null)
 
   return (
-    <UserContext.Provider value={{ user, userName, authError, signOut, loading }}>
+    <UserContext.Provider value={{ user, userName, authError, isDemoMode, enterDemoMode, exitDemoMode, signOut, loading }}>
       {children}
     </UserContext.Provider>
   )

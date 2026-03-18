@@ -6,6 +6,7 @@ import type { Tables } from '../types/database'
 type ProfileRow = Tables<'profile'>
 
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 const PROFILE_META: { key: string; label: string; hint?: string; multiline?: boolean }[] = [
   { key: 'current_home',              label: 'Current Home' },
@@ -138,11 +139,12 @@ function ProfileFieldRow({ meta, row, onSave }: RowProps) {
 }
 
 export default function Profile() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [rows, setRows] = useState<ProfileRow[]>([])
   const [loading, setLoading] = useState(true)
 
   async function fetchProfile() {
+    if (isDemoMode) { setRows(DEMO_DATA.profile as any); setLoading(false); return }
     const { data } = await supabase.from('profile').select('*')
     setRows(data || [])
     setLoading(false)
@@ -150,6 +152,7 @@ export default function Profile() {
 
   useEffect(() => {
     fetchProfile()
+    if (isDemoMode) return
     const ch = supabase.channel('profile-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profile' }, fetchProfile)
       .subscribe()
@@ -157,6 +160,7 @@ export default function Profile() {
   }, [])
 
   async function handleSave(key: string, value: string) {
+    if (isDemoMode) return
     const patch = { key, value, updated_by: userName, updated_at: new Date().toISOString() }
     setRows(prev => {
       const exists = prev.find(r => r.key === key)

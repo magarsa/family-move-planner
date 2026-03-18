@@ -13,6 +13,7 @@ type PropertyRow = Tables<'properties'>
 type SchoolRow = Tables<'schools'>
 
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 import ProgressRing from '../components/ProgressRing'
 
 const PHASES = [
@@ -33,7 +34,7 @@ function progressPercent(start: Date, target: Date): number {
 }
 
 export default function Dashboard() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [todos, setTodos] = useState<TodoRow[]>([])
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [whatifs, setWhatifs] = useState<WhatIfRow[]>([])
@@ -44,6 +45,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
+      if (isDemoMode) {
+        setTodos(DEMO_DATA.todos)
+        setBranches(DEMO_DATA.branches)
+        setWhatifs(DEMO_DATA.whatifs)
+        setProperties(DEMO_DATA.properties as any)
+        setSchools(DEMO_DATA.schools as any)
+        setProfile(DEMO_DATA.profile as any)
+        setLoading(false)
+        return
+      }
       const [
         { data: todosData },
         { data: branchesData },
@@ -68,6 +79,7 @@ export default function Dashboard() {
       setLoading(false)
     }
     load()
+    if (isDemoMode) return
 
     const ch = supabase.channel('dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => load())

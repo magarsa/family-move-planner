@@ -18,7 +18,7 @@ import { useUser } from './hooks/useUser'
 import { useTheme } from './hooks/useTheme'
 
 export default function App() {
-  const { user, userName, authError, loading } = useUser()
+  const { user, userName, authError, isDemoMode, loading } = useUser()
   useTheme()
 
   if (loading) {
@@ -29,7 +29,7 @@ export default function App() {
     )
   }
 
-  if (!user || !userName) {
+  if (!isDemoMode && (!user || !userName)) {
     return <Login authError={authError} />
   }
 

@@ -1,7 +1,9 @@
 import { useState, type ReactNode } from 'react'
 import { Menu } from 'lucide-react'
 import Sidebar from './Sidebar'
+import DemoBanner from './DemoBanner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useUser } from '../hooks/useUser'
 
 interface Props {
   children: ReactNode
@@ -9,6 +11,7 @@ interface Props {
 
 export default function Layout({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { isDemoMode } = useUser()
 
   return (
     <div className="flex h-screen overflow-hidden bg-stone-50 dark:bg-stone-900">
@@ -54,6 +57,8 @@ export default function Layout({ children }: Props) {
           <span className="font-serif font-semibold text-stone-900 dark:text-stone-100">Move Planner</span>
           <div className="w-8" /> {/* spacer */}
         </header>
+
+        {isDemoMode && <DemoBanner />}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">

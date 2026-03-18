@@ -8,6 +8,7 @@ type WhatIfRow = Tables<'whatifs'>
 type BranchRow = Tables<'branches'>
 
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type WIStatus = 'Unplanned' | 'Monitoring' | 'Triggered' | 'Resolved'
 
@@ -28,7 +29,7 @@ interface CardProps {
 }
 
 function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [editNotes, setEditNotes] = useState(item.notes || '')
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -40,18 +41,21 @@ function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
   const [savingScenario, setSavingScenario] = useState(false)
 
   async function setStatus(s: WIStatus) {
+    if (isDemoMode) return
     const patch = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(item.id, patch)
     await supabase.from('whatifs').update(patch).eq('id', item.id)
   }
 
   async function setBranch(branchTitle: string) {
+    if (isDemoMode) return
     const patch = { branch: branchTitle || null, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(item.id, patch)
     await supabase.from('whatifs').update(patch).eq('id', item.id)
   }
 
   async function save() {
+    if (isDemoMode) return
     setSaving(true)
     const patch = { notes: editNotes || null, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(item.id, patch)
@@ -61,6 +65,7 @@ function ContingencyCard({ item, branches, onUpdate, onDelete }: CardProps) {
   }
 
   async function saveScenario() {
+    if (isDemoMode) return
     if (!editScenario.trim()) return
     setSavingScenario(true)
     const patch = { scenario: editScenario.trim(), updated_by: userName, updated_at: new Date().toISOString() }
@@ -235,13 +240,14 @@ function AddContingencyForm({ branches, onAdd, onCancel }: AddFormProps) {
 }
 
 export default function Whatifs() {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [items, setItems] = useState<WhatIfRow[]>([])
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
 
   async function fetchItems() {
+    if (isDemoMode) { setItems(DEMO_DATA.whatifs as any); setBranches(DEMO_DATA.branches as any); setLoading(false); return }
     const [{ data: wiData }, { data: branchData }] = await Promise.all([
       supabase.from('whatifs').select('*').order('updated_at', { ascending: false }),
       supabase.from('branches').select('*').order('sort_order', { ascending: true }),
@@ -253,6 +259,7 @@ export default function Whatifs() {
 
   useEffect(() => {
     fetchItems()
+    if (isDemoMode) return
     const ch = supabase.channel('whatifs-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'whatifs' }, fetchItems)
       .subscribe()
@@ -264,11 +271,13 @@ export default function Whatifs() {
   }
 
   async function handleDelete(id: string) {
+    if (isDemoMode) return
     setItems(prev => prev.filter(i => i.id !== id))
     await supabase.from('whatifs').delete().eq('id', id)
   }
 
   async function handleAdd(scenario: string, branch: string) {
+    if (isDemoMode) return
     const newItem = {
       scenario,
       branch: branch || null,

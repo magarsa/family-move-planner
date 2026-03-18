@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type ContactRow = Tables<'contacts'>
 type ContactNoteRow = Tables<'contact_notes'>
@@ -69,7 +70,7 @@ interface ContactCardProps {
 }
 
 function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [open, setOpen] = useState(false)
 
   // Edit fields
@@ -102,6 +103,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   }
 
   async function handleDeleteNote(id: string) {
+    if (isDemoMode) return
     setDeletingNoteId(id)
     await supabase.from('contact_notes').delete().eq('id', id)
     setContactNotes(prev => prev.filter(n => n.id !== id))
@@ -125,6 +127,12 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
 
   useEffect(() => {
     if (!open) return
+    if (isDemoMode) {
+      const filtered = (DEMO_DATA.contact_notes as any[]).filter(n => n.contact_id === contact.id)
+      setContactNotes(filtered as ContactNoteRow[])
+      setLoadingNotes(false)
+      return
+    }
     setLoadingNotes(true)
     supabase
       .from('contact_notes')
@@ -142,6 +150,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   }
 
   async function save() {
+    if (isDemoMode) return
     setSaving(true)
     const patch: Partial<ContactRow> = {
       name: editName.trim() || contact.name,
@@ -162,12 +171,14 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   }
 
   async function setStatus(s: ContactStatus) {
+    if (isDemoMode) return
     const patch: Partial<ContactRow> = { status: s, updated_by: userName, updated_at: new Date().toISOString() }
     onUpdate(contact.id, patch)
     await supabase.from('contacts').update(patch).eq('id', contact.id)
   }
 
   async function handleDelete() {
+    if (isDemoMode) return
     if (!confirm(`Delete "${contact.name}"? This cannot be undone.`)) return
     setDeleting(true)
     await supabase.from('contacts').delete().eq('id', contact.id)
@@ -175,6 +186,7 @@ function ContactCard({ contact, properties, onUpdate, onDelete }: ContactCardPro
   }
 
   async function postNote() {
+    if (isDemoMode) return
     if (!noteContent.trim()) return
     setPostingNote(true)
     const newNote = {
@@ -576,7 +588,7 @@ interface AddContactFormProps {
 }
 
 function AddContactForm({ onAdd, onCancel }: AddContactFormProps) {
-  const { userName } = useUser()
+  const { userName, isDemoMode } = useUser()
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
   const [roleCustom, setRoleCustom] = useState('')
@@ -586,6 +598,7 @@ function AddContactForm({ onAdd, onCancel }: AddContactFormProps) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (isDemoMode) return
     if (!name.trim()) return
     setSaving(true)
     const { data } = await supabase
@@ -656,6 +669,7 @@ function AddContactForm({ onAdd, onCancel }: AddContactFormProps) {
 // ─── Contacts View ───────────────────────────────────────────────────────────
 
 export default function Contacts() {
+  const { isDemoMode } = useUser()
   const [contacts, setContacts] = useState<ContactRow[]>([])
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -665,6 +679,7 @@ export default function Contacts() {
   const [metroFilter, setMetroFilter] = useState<MetroFilter>('All')
 
   async function fetchContacts() {
+    if (isDemoMode) { setContacts(DEMO_DATA.contacts as any); setLoading(false); return }
     const { data } = await supabase
       .from('contacts')
       .select('*')
@@ -675,6 +690,10 @@ export default function Contacts() {
 
   useEffect(() => {
     fetchContacts()
+    if (isDemoMode) {
+      setProperties(DEMO_DATA.properties as any)
+      return
+    }
     supabase.from('properties').select('id, address, area').then(({ data }) => {
       setProperties((data || []) as PropertyRow[])
     })

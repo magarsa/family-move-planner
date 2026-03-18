@@ -5,6 +5,7 @@ import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
 import type { Tables } from '../types/database'
 import { useUser } from '../hooks/useUser'
+import { DEMO_DATA } from '../lib/demoData'
 
 type DeadlineRow  = Tables<'deadlines'>
 
@@ -44,7 +45,7 @@ function urgencyLabel(days: number) {
 }
 
 export default function Deadlines() {
-  const { userName }  = useUser()
+  const { userName, isDemoMode }  = useUser()
   const [deadlines, setDeadlines] = useState<DeadlineRow[]>([])
   const [properties, setProperties] = useState<{ id: string; address: string | null; area: string | null }[]>([])
   const [loading,   setLoading]   = useState(true)
@@ -60,6 +61,12 @@ export default function Deadlines() {
 
   useEffect(() => {
     async function load() {
+      if (isDemoMode) {
+        setDeadlines(DEMO_DATA.deadlines as any)
+        setProperties(DEMO_DATA.properties as any)
+        setLoading(false)
+        return
+      }
       const [{ data: dl }, { data: pr }] = await Promise.all([
         supabase.from('deadlines').select('*').order('deadline_at', { ascending: true }),
         supabase.from('properties').select('id, address, area').order('created_at', { ascending: false }),
@@ -69,6 +76,7 @@ export default function Deadlines() {
       setLoading(false)
     }
     load()
+    if (isDemoMode) return
     const ch = supabase.channel('deadlines-view')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'deadlines' }, () => load())
       .subscribe()
@@ -76,6 +84,7 @@ export default function Deadlines() {
   }, [])
 
   async function addDeadline() {
+    if (isDemoMode) return
     if (!newTitle.trim() || !newDate) return
     setSaving(true)
     await supabase.from('deadlines').insert({
@@ -92,6 +101,7 @@ export default function Deadlines() {
   }
 
   async function toggleComplete(dl: DeadlineRow) {
+    if (isDemoMode) return
     const done = !dl.completed
     await supabase.from('deadlines').update({
       completed:    done,
@@ -101,6 +111,7 @@ export default function Deadlines() {
   }
 
   async function deleteDeadline(id: string) {
+    if (isDemoMode) return
     await supabase.from('deadlines').delete().eq('id', id)
   }
 
