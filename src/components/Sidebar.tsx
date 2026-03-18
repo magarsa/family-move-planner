@@ -58,7 +58,7 @@ function getInitialCollapsed(): Record<string, boolean> {
 }
 
 export default function Sidebar() {
-  const { userName, clearUser } = useUser()
+  const { userName, signOut } = useUser()
   const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(getInitialCollapsed)
@@ -195,8 +195,8 @@ export default function Sidebar() {
             </motion.button>
             <motion.button
               whileTap={{ scale: 0.9 }}
-              onClick={clearUser}
-              title="Switch user"
+              onClick={signOut}
+              title="Sign out"
               className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
             >
               <LogOut size={14} />

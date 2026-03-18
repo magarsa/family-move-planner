@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
-import UserSetup from './components/UserSetup'
+import Login from './views/Login'
 import Dashboard from './views/Dashboard'
 import Todos from './views/Todos'
 import Branches from './views/Branches'
@@ -18,11 +18,19 @@ import { useUser } from './hooks/useUser'
 import { useTheme } from './hooks/useTheme'
 
 export default function App() {
-  const { userName, setUserName } = useUser()
+  const { user, userName, authError, loading } = useUser()
   useTheme()
 
-  if (!userName) {
-    return <UserSetup onSelect={setUserName} />
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user || !userName) {
+    return <Login authError={authError} />
   }
 
   return (

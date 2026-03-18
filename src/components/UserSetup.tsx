@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import type { UserName } from '../hooks/useUser'
 
 interface Props {
-  onSelect: (name: UserName) => void
+  onSelect: (name: UserName) => Promise<void>
 }
 
 const users: { name: UserName; emoji: string; role: string }[] = [
@@ -56,7 +56,7 @@ export default function UserSetup({ onSelect }: Props) {
         </div>
 
         <p className="text-xs text-stone-400">
-          Your choice is saved locally. You can switch at any time from the sidebar.
+          This links your name to your account and is saved permanently.
         </p>
       </motion.div>
     </div>
