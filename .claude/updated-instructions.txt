@@ -1,0 +1,199 @@
+Plan: Reassess Home Purchase Checklist + Add CLAUDE.md
+Context
+The existing checklist has no financial grounding. This overhaul makes it a live, context-aware field tool with an embedded mortgage calculator that drives all displayed numbers. The user wants to be able to adjust inputs (price, rate, down payment, income, etc.) and see every dollar figure in the feature update in real time — usable while talking to lenders.
+Two tasks:
+Overhaul src/views/HomePurchaseChecklist.tsx — full rewrite with embedded calculator, scenario toggles, financial summary card, scenario-aware item display, and pre-populated contextual notes
+Create CLAUDE.md at project root — capture financial context for future AI agent reference
+Task 1: HomePurchaseChecklist.tsx
+File to modify
+src/views/HomePurchaseChecklist.tsx — full rewrite
+Page layout (top to bottom)
+Title row [X/Y relevant · Z%]
+────────────────────────────────────────────────────────
+[Scenario A: Sell Des Moines] [Scenario B: Keep as Rental] ← segment toggle
+────────────────────────────────────────────────────────
+▼ Calculator (collapsible card, open by default)
+┌──────────────────────────────────────┐
+│ Purchase price [$530,000 ] │ Quick: [$530K] [$620K]
+│ Down payment [──●──────] 10% │ (auto-switches A↔B default: 20%/10%)
+│ Interest rate [──●──────] 7.0% │
+│ Loan term [30 yr ▾] │
+│ Annual income [$161,000 ] │
+│ Property tax rate [──●──────] 0.90%│
+│ Annual insurance [$2,400 ] │
+│ PMI rate [──●──────] 0.55%│ (only shown when down < 20%)
+│ [Scenario B only] │
+│ Des Moines monthly rent [$1,900 ] │
+└──────────────────────────────────────┘
+
+▼ Financial Summary (always visible, computed from calculator)
+┌─────────────────────────────────────────────────────────┐
+│ Down payment $53,000 (10%) │ Loan amount $477K │
+│ Monthly P&I $3,175 │ Property tax $398 │
+│ Insurance $200 │ PMI $239 │
+│ ─────────────────────────────────────────────────────── │
+│ Total monthly $4,012/mo │ DTI 31.7% │
+│ [contextual note: "DTI within lender guidelines ✓"] │
+│ [Scenario B: "Rental income offsets Des Moines by │
+│ $1,425/mo (75%) → net DTI exposure: $475/mo"] │
+└─────────────────────────────────────────────────────────┘
+
+Overall progress bar + per-phase dots
+
+Phase cards (collapsible)...
+Calculator inputs & defaults
+Input
+Type
+Default
+Notes
+Purchase price
+Number input + slider
+$530,000
+Quick-set buttons: $530K, $620K
+Down payment %
+Slider 3–40%
+10% (B) / 20% (A)
+Auto-switches when scenario toggles
+Interest rate
+Slider 4–10%, step 0.125%
+7.0%
+
+Loan term
+Select 15/30 yr
+30
+
+Annual gross income
+Number input
+$161,000
+
+Property tax rate
+Slider 0.3–3%
+0.9%
+SC/NC typical range
+Annual insurance
+Number input
+$2,400
+
+PMI rate
+Slider 0.2–1.0%
+0.55%
+Hidden when down ≥ 20%
+Des Moines rent
+Number input
+$1,900
+Scenario B only; used in DTI offset calc
+All inputs persist to localStorage under fmp_home_checklist_prefs alongside the scenario selection.
+Computed values (derived, not stored)
+const downAmt = price * (downPct / 100)
+const loan = price - downAmt
+const monthlyRate = rate / 100 / 12
+const n = term * 12
+const pAndI = loan * (monthlyRate * (1 + monthlyRate) ** n) / ((1 + monthlyRate) ** n - 1)
+const monthlyTax = price * (taxRate / 100) / 12
+const monthlyIns = annualInsurance / 12
+const monthlyPMI = downPct < 20 ? (loan * (pmiRate / 100) / 12) : 0
+const totalMonthly = pAndI + monthlyTax + monthlyIns + monthlyPMI
+const grossMonthlyIncome = annualIncome / 12
+
+// Scenario B: rental income offsets Des Moines mortgage in lender DTI calc
+// Lender credits 75% of rent toward offsetting Des Moines PITI (~$1,900/mo)
+const desMoinesNetDTIExposure = scenario === 'B'
+? Math.max(0, 1900 - desMoinesRent * 0.75)
+: 0
+const monthlyDebt = totalMonthly + desMoinesNetDTIExposure
+const dti = (monthlyDebt / grossMonthlyIncome) * 100
+
+// Buydown savings (2-1 buydown at current rate)
+const year1Rate = Math.max(0, rate - 2)
+const year2Rate = Math.max(0, rate - 1)
+const year1PI = loan * ((year1Rate/100/12) * (1 + year1Rate/100/12)**n) / ((1 + year1Rate/100/12)**n - 1)
+const year2PI = loan * ((year2Rate/100/12) * (1 + year2Rate/100/12)**n) / ((1 + year2Rate/100/12)**n - 1)
+const year1Savings = pAndI - year1PI
+const year2Savings = pAndI - year2PI
+Use useMemo to memoize all derived values (same pattern as FinancialSnapshot.tsx).
+Financial summary card
+2×4 grid of computed values with:
+DTI color-coded: teal ≤30%, amber 30–36.5%, red >36.5%
+PMI row hidden when down ≥ 20% (Scenario A)
+Scenario B: extra row showing "Des Moines DTI offset: $X/mo rental → lender credits $Y/mo (75%) → net exposure $Z/mo"
+Bottom note: Palmetto Heroes reminder when scenario involves SC purchase
+Types
+type Scenario = 'A' | 'B'
+type ItemScenario = 'both' | 'A' | 'B'
+
+type ChecklistItem = {
+id: string
+text: string
+scenarios: ItemScenario
+scSideOnly?: boolean // shows "SC side" badge
+helperText: string // pre-populated note (contextual guidance, not hardcoded $s)
+}
+Item scenario assignments + revised text (23 items)
+Phase 1 — Now (amber):
+
+ID	For	SC?	Text
+p1_1	both		Pull all three credit reports (Equifax, Experian, TransUnion); pay revolving balances under 10% utilization
+p1_2	both		Get pre-approved with 2–3 lenders; include one SC Housing Palmetto Heroes lender if targeting SC side
+p1_3	both	✓	Verify Palmetto Heroes eligibility: spouse's RN license, income limit ($161K borderline), price cap ($530K borderline)
+p1_4	B		Confirm lender will accept family lease to offset Des Moines mortgage in DTI calc — get written confirmation
+p1_5	B		Draft formal lease agreement for Des Moines at market rate (must cover $1,900/mo PITI)
+p1_6	B		Talk to CPA: rental depreciation ($8,400/yr), passive activity loss rules, filing strategy
+p1_7	A		Coordinate Des Moines sale timeline to have ~$122K proceeds available for Charlotte down payment
+Phase 2 — During Home Search (blue):			
+ID	For	Text	
+------	------	------	
+p2_1	both	Target list price ~$560–620K; negotiate down + request seller-paid 2-1 buydown concession	
+p2_2	B	Ask every lender about recast availability — confirm Fannie/Freddie eligibility at origination	
+p2_3	both	Get float-down rate lock option (lock now, capture lower rate if market drops before closing)	
+p2_4	B	Evaluate 80-10-10 piggyback loan to eliminate PMI (80% first + 10% second + 10% cash)	
+p2_5	both	Negotiate seller concessions toward closing costs or 2-1 buydown escrow	
+Phase 3 — At Closing (teal):			
+ID	For	SC?	Text
+------	------	------	------
+p3_1	both	✓	Apply for SC homestead exemption within 90 days of closing (4% vs 6% assessment = $2,500–3,500/yr savings)
+p3_2	both		Set calendar reminder: property tax appeal window opens after first assessment notice
+p3_3	B		Confirm loan is conventional Fannie/Freddie (required for future recast)
+Phase 4 — Year 1–2 (violet):			
+ID	For	Text	
+------	------	------	
+p4_1	both	Redirect 2-1 buydown savings to principal paydown each month (see calculator for Year 1/Year 2 savings amounts)	
+p4_2	B	Track Des Moines rental income and expenses in a dedicated account for Schedule E tax filing	
+p4_3	both	Evaluate refinance when rates drop ≥0.75% below your note rate	
+p4_4	B	Request PMI cancellation appraisal once 20% equity threshold is near	
+Phase 5 — Year 3–5 (stone):			
+ID	For	Text	
+------	------	------	
+p5_1	B	Reassess Des Moines: sell and recast Charlotte mortgage (~$800+/mo savings), or continue holding?	
+p5_2	B	If PMI still active, order new appraisal and request early cancellation	
+p5_3	B	Review depreciation recapture tax before selling Des Moines (~25% of accumulated depreciation)	
+p5_4	both	Evaluate Charlotte home equity for HELOC or recast opportunity	
+Note pre-population			
+When toggleNote(id, item) is called and state.note === '':			
+→ immediately call update(id, { note: item.helperText }) before opening			
+→ user sees contextual guidance pre-filled; can edit or clear freely			
+Helper text contains: key questions to ask lenders/CPA, decision criteria, what to watch for — not hardcoded dollar amounts (those live in the live financial summary card instead).			
+Scenario-aware display			
+Items irrelevant to active scenario: opacity-40, checkbox has pointer-events-none			
+Scenario/SC badge renders as small status-badge pill next to item text: blue "Scenario B", green "Scenario A", teal "SC side"			
+Progress bar + phase X/Y counts = only items relevant to active scenario			
+Scenario A defaults down payment to 20%, Scenario B defaults to 10% — but user can override			
+Task 2: CLAUDE.md			
+File: /home/user/family-move-planner/CLAUDE.md			
+Sections:			
+Project — app purpose, tech stack (React 18 + Vite + TypeScript + Tailwind + Framer Motion + Supabase)			
+Family — household, income ($161K/yr, $13,416/mo gross), timeline (end 2025), RN license, Des Moines → Charlotte metro			
+Des Moines property — price $231,500, principal $196,994, value $340,000, gross equity $143K, net ~$122,600, monthly PITI+PMI ~$1,900, plan: rent to family			
+Charlotte budget — $530–620K target, 10% savings available for down payment, FHA NOT viable (MSA limits exceeded)			
+Scenario A (sell Des Moines) — ~20% down, no PMI, cleaner DTI			
+Scenario B (keep as rental) — 10% down, PMI, DTI includes rental offset math			
+Key strategies — Palmetto Heroes, recast, homestead exemption, 2-1 buydown, 80-10-10, depreciation, float-down lock, tax appeal, PMI cancellation, buy-and-refi			
+Community preference — SC: Indian Land, Fort Mill, Tega Cay; NC: Waxhaw			
+Technical notes — localStorage keys (fmp_home_checklist, fmp_home_checklist_prefs), key file paths, color conventions			
+Verification			
+Load page → default Scenario B; calculator shows all inputs; financial summary shows live-computed values			
+Change purchase price to $620K → loan amount, monthly payment, DTI all update instantly			
+Drag down payment to 20% → PMI row disappears from summary, PMI slider hides			
+Switch to Scenario A → down payment auto-snaps to 20%, Scenario B items dim, p1_7 activates, progress recount			
+Open note on p1_4 (first time, no existing note) → textarea fills with contextual guidance			
+Refresh → all inputs, scenario, checkbox states, and notes persist from localStorage			
+CLAUDE.md at project root with accurate financial data	

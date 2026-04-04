@@ -11,6 +11,7 @@ import Properties from './views/Properties'
 import Schools from './views/Schools'
 import Contacts from './views/Contacts'
 import Selling from './views/Selling'
+import HomePurchaseChecklist from './views/HomePurchaseChecklist'
 import Reports from './views/Reports'
 import Communications from './views/Communications'
 import Deadlines from './views/Deadlines'
@@ -48,6 +49,7 @@ export default function App() {
         <Route path="/comms" element={<Communications />} />
         <Route path="/deadlines" element={<Deadlines />} />
         <Route path="/selling" element={<Selling />} />
+        <Route path="/buy-checklist" element={<HomePurchaseChecklist />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
