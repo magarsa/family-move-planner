@@ -565,7 +565,17 @@ export default function HouseProfile() {
               {aiSummary ? (
                 <p className="text-sm text-stone-700 dark:text-stone-200 leading-relaxed">{aiSummary}</p>
               ) : summaryError ? (
-                <p className="text-sm text-red-500 dark:text-red-400">{summaryError}</p>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-red-500 dark:text-red-400">{summaryError}</p>
+                  <button
+                    onClick={generateSummary}
+                    disabled={summaryLoading}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 text-red-600 dark:text-red-400 text-xs font-semibold rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <RefreshCw size={11} />
+                    Retry
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={generateSummary}
