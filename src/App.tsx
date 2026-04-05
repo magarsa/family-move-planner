@@ -15,6 +15,7 @@ import HomePurchaseChecklist from './views/HomePurchaseChecklist'
 import Reports from './views/Reports'
 import Communications from './views/Communications'
 import Deadlines from './views/Deadlines'
+import HouseProfile from './views/HouseProfile'
 import { useUser } from './hooks/useUser'
 import { useTheme } from './hooks/useTheme'
 
@@ -51,6 +52,7 @@ export default function App() {
         <Route path="/selling" element={<Selling />} />
         <Route path="/home-checklist" element={<HomePurchaseChecklist />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/house-profile" element={<HouseProfile />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
