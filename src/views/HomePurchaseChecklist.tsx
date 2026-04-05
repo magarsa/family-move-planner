@@ -767,9 +767,9 @@ export default function HomePurchaseChecklist() {
 
       {/* Calculator card */}
       <div className="card overflow-hidden">
-        <button
+        <div
           onClick={() => setCalcOpen(o => !o)}
-          className="w-full px-4 py-3 flex items-center gap-2 bg-stone-50 dark:bg-stone-800/60 border-b border-stone-100 dark:border-stone-700/50 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-colors"
+          className="w-full px-4 py-3 flex items-center gap-2 bg-stone-50 dark:bg-stone-800/60 border-b border-stone-100 dark:border-stone-700/50 hover:bg-stone-100 dark:hover:bg-stone-700/40 transition-colors cursor-pointer"
         >
           <span className="font-semibold text-sm text-stone-700 dark:text-stone-300 flex-1 text-left">
             Mortgage Calculator
@@ -791,7 +791,7 @@ export default function HomePurchaseChecklist() {
           <motion.span animate={{ rotate: calcOpen ? 0 : -90 }} transition={{ duration: 0.2 }}>
             <ChevronDown size={15} className="text-stone-400 flex-shrink-0" />
           </motion.span>
-        </button>
+        </div>
 
         <AnimatePresence initial={false}>
           {calcOpen && (

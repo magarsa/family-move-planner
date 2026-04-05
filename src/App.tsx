@@ -49,7 +49,7 @@ export default function App() {
         <Route path="/comms" element={<Communications />} />
         <Route path="/deadlines" element={<Deadlines />} />
         <Route path="/selling" element={<Selling />} />
-        <Route path="/buy-checklist" element={<HomePurchaseChecklist />} />
+        <Route path="/home-checklist" element={<HomePurchaseChecklist />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
