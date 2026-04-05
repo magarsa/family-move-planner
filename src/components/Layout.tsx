@@ -5,20 +5,36 @@ import DemoBanner from './DemoBanner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '../hooks/useUser'
 
+const SIDEBAR_COLLAPSED_KEY = 'fmp_sidebar_collapsed'
+
 interface Props {
   children: ReactNode
 }
 
 export default function Layout({ children }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true'
+  )
   const { isDemoMode } = useUser()
+
+  function toggleSidebar() {
+    setSidebarCollapsed(prev => {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(!prev))
+      return !prev
+    })
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-stone-50 dark:bg-stone-900">
       {/* Desktop sidebar */}
-      <div className="hidden md:flex md:w-60 lg:w-64 flex-shrink-0 flex-col">
-        <Sidebar />
-      </div>
+      <motion.div
+        className="hidden md:flex flex-shrink-0 flex-col"
+        animate={{ width: sidebarCollapsed ? 56 : 240 }}
+        transition={{ duration: 0.22, ease: 'easeInOut' }}
+      >
+        <Sidebar collapsed={sidebarCollapsed} onToggleCollapse={toggleSidebar} />
+      </motion.div>
 
       {/* Mobile sidebar overlay */}
       <AnimatePresence>

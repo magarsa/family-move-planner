@@ -15,6 +15,7 @@ import { supabase } from "../lib/supabase";
 import { useUser } from "../hooks/useUser";
 import { streamReport } from "../lib/reportStream";
 import { ReportViewer } from "../components/ReportViewer";
+import { FullscreenWrapper, FullscreenToggleButton } from "../components/FullscreenWrapper";
 import {
   REPORT_TYPE_CONFIGS,
   type Report,
@@ -155,12 +156,16 @@ export default function Reports() {
     setHistoryOpen(false);
   }, []);
 
+  // ── Fullscreen ─────────────────────────────────────────────────────────────
+  const [fullscreen, setFullscreen] = useState(false);
+
   // ── Reset to picker ────────────────────────────────────────────────────────
   const reset = useCallback(() => {
     abortRef.current?.abort();
     setActiveType(null);
     setStreamedHtml("");
     setStreamStatus("pending");
+    setFullscreen(false);
   }, []);
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
@@ -178,25 +183,33 @@ export default function Reports() {
       <div className="bg-white border-b border-gray-200 px-6 py-4
                       flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">AI Reports</h1>
+          <h1 className="text-xl font-bold text-gray-900">Reports</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Generate a live report from your move planning data
           </p>
         </div>
-        <button
-          onClick={() => setHistoryOpen((o) => !o)}
-          className="flex items-center gap-1.5 text-sm font-semibold
-                     text-gray-600 hover:text-gray-900 border border-gray-200
-                     hover:border-gray-400 px-3 py-1.5 rounded-lg transition-colors"
-        >
-          📋 History
-          {history.length > 0 && (
-            <span className="ml-1 bg-blue-100 text-blue-700 text-xs font-bold
-                             px-1.5 py-0.5 rounded-full">
-              {history.length}
-            </span>
+        <div className="flex items-center gap-2">
+          {activeType && (
+            <FullscreenToggleButton
+              fullscreen={fullscreen}
+              onToggle={() => setFullscreen(f => !f)}
+            />
           )}
-        </button>
+          <button
+            onClick={() => setHistoryOpen((o) => !o)}
+            className="flex items-center gap-1.5 text-sm font-semibold
+                       text-gray-600 hover:text-gray-900 border border-gray-200
+                       hover:border-gray-400 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            📋 History
+            {history.length > 0 && (
+              <span className="ml-1 bg-blue-100 text-blue-700 text-xs font-bold
+                               px-1.5 py-0.5 rounded-full">
+                {history.length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8 flex flex-col gap-6">
@@ -212,10 +225,15 @@ export default function Reports() {
               transition={{ duration: 0.25 }}
             >
               <p className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-                Choose a report type
+                Choose a report
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {REPORT_TYPE_CONFIGS.map((cfg) => (
+
+              {/* AI-generated reports */}
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <span>✨</span> AI-Generated
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                {REPORT_TYPE_CONFIGS.filter(c => !c.isStatic).map((cfg) => (
                   <button
                     key={cfg.type}
                     onClick={() => generate(cfg.type)}
@@ -231,6 +249,32 @@ export default function Reports() {
                     <div className="text-xs text-gray-500 leading-relaxed">{cfg.description}</div>
                     <div className={`mt-4 text-xs font-semibold ${cfg.color} opacity-0 group-hover:opacity-100 transition-opacity`}>
                       Generate →
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Static reference guides */}
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <span>⚡</span> Reference Guides
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {REPORT_TYPE_CONFIGS.filter(c => c.isStatic).map((cfg) => (
+                  <button
+                    key={cfg.type}
+                    onClick={() => generate(cfg.type)}
+                    className={`
+                      group text-left rounded-2xl border-2 p-5
+                      transition-all duration-200 cursor-pointer
+                      bg-white hover:shadow-md active:scale-[0.98]
+                      ${cfg.borderColor} hover:${cfg.bgColor}
+                    `}
+                  >
+                    <div className="text-3xl mb-3">{cfg.icon}</div>
+                    <div className={`text-base font-bold mb-1 ${cfg.color}`}>{cfg.label}</div>
+                    <div className="text-xs text-gray-500 leading-relaxed">{cfg.description}</div>
+                    <div className={`mt-4 text-xs font-semibold ${cfg.color} opacity-0 group-hover:opacity-100 transition-opacity`}>
+                      View →
                     </div>
                   </button>
                 ))}
@@ -261,14 +305,19 @@ export default function Reports() {
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.25 }}
             >
-              <ReportViewer
-                html={streamedHtml}
-                status={streamStatus}
-                errorMessage={streamError}
-                reportTitle={activeTitle}
-                onDownload={() => downloadHtml(streamedHtml, activeTitle)}
-                onClose={reset}
-              />
+              <FullscreenWrapper
+                fullscreen={fullscreen}
+                onToggle={() => setFullscreen(f => !f)}
+              >
+                <ReportViewer
+                  html={streamedHtml}
+                  status={streamStatus}
+                  errorMessage={streamError}
+                  reportTitle={activeTitle}
+                  onDownload={() => downloadHtml(streamedHtml, activeTitle)}
+                  onClose={reset}
+                />
+              </FullscreenWrapper>
             </motion.div>
           )}
         </AnimatePresence>

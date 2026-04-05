@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { Loader2, BookOpen, Send } from 'lucide-react'
+import { Loader2, BookOpen, Send, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ScrollToTopButton from '../components/ScrollToTopButton'
 import { supabase } from '../lib/supabase'
@@ -60,6 +60,15 @@ export default function Notes() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [notes.length])
+
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  async function deleteNote(id: string) {
+    if (isDemoMode) return
+    setNotes(prev => prev.filter(n => n.id !== id))
+    setConfirmDelete(null)
+    await supabase.from('notes').delete().eq('id', id)
+  }
 
   async function addNote() {
     if (isDemoMode) return
@@ -130,7 +139,8 @@ export default function Notes() {
                         key={note.id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className={`flex group ${isMe ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`max-w-2xl ${isMe ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
                           <div className="flex items-center gap-2">
@@ -144,6 +154,30 @@ export default function Notes() {
                               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colorClass}`}>
                                 {note.author}
                               </span>
+                            )}
+                            {/* Delete control — own notes only */}
+                            {isMe && !isDemoMode && (
+                              confirmDelete === note.id ? (
+                                <span className="flex items-center gap-1.5 text-xs">
+                                  <span className="text-stone-400 dark:text-stone-500">Delete?</span>
+                                  <button
+                                    onClick={() => deleteNote(note.id)}
+                                    className="font-semibold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                  >Yes</button>
+                                  <button
+                                    onClick={() => setConfirmDelete(null)}
+                                    className="font-semibold text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+                                  >No</button>
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => setConfirmDelete(note.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded text-stone-300 hover:text-red-500 dark:text-stone-600 dark:hover:text-red-400"
+                                  title="Delete note"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              )
                             )}
                           </div>
                           <div className={`card px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
