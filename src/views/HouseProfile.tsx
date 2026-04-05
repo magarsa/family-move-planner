@@ -320,9 +320,10 @@ function ItemRow({ item, catId, expandedNotes, onToggleNote, onUpdate, onRemove 
   return (
     <motion.div
       layout
-      className="bg-white dark:bg-stone-800 border border-stone-150 dark:border-stone-700 rounded-xl p-3.5 hover:border-stone-200 dark:hover:border-stone-600 transition-colors"
+      className="bg-white dark:bg-stone-800 border border-stone-150 dark:border-stone-700 rounded-xl p-3 sm:p-3.5 hover:border-stone-200 dark:hover:border-stone-600 transition-colors"
     >
-      <div className="flex items-start gap-3">
+      {/* Main row: label + actions */}
+      <div className="flex items-start gap-2 sm:gap-3">
         <div className="flex-1 min-w-0">
           {editing ? (
             <input
@@ -342,9 +343,9 @@ function ItemRow({ item, catId, expandedNotes, onToggleNote, onUpdate, onRemove 
               <button
                 onClick={() => { setDraft(item.label); setEditing(true) }}
                 title="Edit label"
-                className="opacity-0 group-hover/label:opacity-100 p-0.5 rounded text-stone-300 dark:text-stone-600 hover:text-teal-500 transition-all flex-shrink-0 mt-0.5"
+                className="sm:opacity-0 sm:group-hover/label:opacity-100 opacity-100 p-1 rounded text-stone-300 dark:text-stone-500 hover:text-teal-500 active:text-teal-600 transition-all flex-shrink-0 mt-0.5"
               >
-                <Pencil size={11} />
+                <Pencil size={12} />
               </button>
             </div>
           )}
@@ -368,25 +369,28 @@ function ItemRow({ item, catId, expandedNotes, onToggleNote, onUpdate, onRemove 
             )}
           </AnimatePresence>
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        {/* Action buttons — stacked on mobile, inline on desktop */}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1 flex-shrink-0">
           <PriorityPicker
             value={item.priority}
             onChange={v => onUpdate(catId, item.id, 'priority', v)}
           />
-          <button
-            onClick={() => onToggleNote(item.id)}
-            title="Toggle note"
-            className={`p-1.5 rounded-lg transition-colors ${item.note ? 'text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20' : 'text-stone-300 dark:text-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700'}`}
-          >
-            <StickyNote size={14} />
-          </button>
-          <button
-            onClick={() => onRemove(catId, item.id)}
-            title="Remove"
-            className="p-1.5 rounded-lg text-stone-300 dark:text-stone-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-          >
-            <X size={14} />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => onToggleNote(item.id)}
+              title="Toggle note"
+              className={`p-2 rounded-lg transition-colors ${item.note ? 'text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20' : 'text-stone-300 dark:text-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700'}`}
+            >
+              <StickyNote size={15} />
+            </button>
+            <button
+              onClick={() => onRemove(catId, item.id)}
+              title="Remove"
+              className="p-2 rounded-lg text-stone-300 dark:text-stone-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 active:text-red-500 transition-colors"
+            >
+              <X size={15} />
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -540,26 +544,26 @@ export default function HouseProfile() {
     <div className="h-full flex flex-col bg-stone-50 dark:bg-stone-950">
 
       {/* Page header */}
-      <div className="flex-shrink-0 bg-white dark:bg-stone-900 border-b border-stone-100 dark:border-stone-800 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100">Home Criteria</h1>
-            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5 font-mono">
+      <div className="flex-shrink-0 bg-white dark:bg-stone-900 border-b border-stone-100 dark:border-stone-800 px-4 sm:px-6 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="font-serif text-lg sm:text-xl font-semibold text-stone-900 dark:text-stone-100 truncate">Home Criteria</h1>
+            <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5 font-mono truncate">
               Rana Magar Family · Charlotte Metro · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
-          <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1 flex-shrink-0">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setView(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all
                   ${view === tab.id
                     ? 'bg-white dark:bg-stone-700 text-stone-900 dark:text-stone-100 shadow-sm'
                     : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'}`}
               >
                 {tab.icon}
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -568,80 +572,104 @@ export default function HouseProfile() {
 
       {/* ── EDIT VIEW ───────────────────────────────────────────────────────── */}
       {view === 'edit' && (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden">
 
-          {/* Category sidebar */}
-          <div className="w-52 flex-shrink-0 bg-white dark:bg-stone-900 border-r border-stone-100 dark:border-stone-800 overflow-y-auto py-2">
-            {categories.map(c => {
-              const isActive = activeCat === c.id
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => setActiveCat(c.id)}
-                  className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-all
-                    ${isActive
-                      ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 font-semibold border-r-2 border-teal-500'
-                      : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 font-medium'}`}
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    <span className={isActive ? 'text-teal-600' : 'text-stone-400'}>{c.icon}</span>
-                    <span className="truncate">{c.title}</span>
-                  </span>
-                  <span className="text-[11px] font-mono bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 rounded-full px-1.5 py-0.5 ml-1 flex-shrink-0">
-                    {c.items.length}
-                  </span>
-                </button>
-              )
-            })}
+          {/* Mobile: horizontal scrollable category tabs */}
+          <div className="sm:hidden flex-shrink-0 bg-white dark:bg-stone-900 border-b border-stone-100 dark:border-stone-800 overflow-x-auto">
+            <div className="flex gap-1.5 px-3 py-2.5" style={{ minWidth: 'max-content' }}>
+              {categories.map(c => {
+                const isActive = activeCat === c.id
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveCat(c.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0
+                      ${isActive
+                        ? 'bg-teal-600 text-white shadow-sm'
+                        : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'}`}
+                  >
+                    <span>{c.icon}</span>
+                    {c.title}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
-          {/* Item editor */}
-          <div className="flex-1 overflow-y-auto px-8 py-6">
-            {activeCatData && (
-              <>
-                <div className="mb-5 pb-4 border-b border-stone-100 dark:border-stone-800">
-                  <h2 className="font-serif text-2xl font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
-                    <span className="text-stone-400">{activeCatData.icon}</span>
-                    {activeCatData.title}
-                  </h2>
-                  <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">
-                    {activeCatData.items.length} items · click a badge to change priority
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  {sortItems(activeCatData.items).map(item => (
-                    <ItemRow
-                      key={item.id}
-                      item={item}
-                      catId={activeCatData.id}
-                      expandedNotes={expandedNotes}
-                      onToggleNote={id => setExpandedNotes(p => ({ ...p, [id]: !p[id] }))}
-                      onUpdate={updateItem}
-                      onRemove={removeItem}
-                    />
-                  ))}
-                </div>
-
-                {/* Add item */}
-                <div className="flex gap-2 mt-4">
-                  <input
-                    value={newItem}
-                    onChange={e => setNewItem(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addItem(activeCatData.id)}
-                    placeholder={`Add item to ${activeCatData.title}…`}
-                    className="flex-1 text-sm px-3.5 py-2.5 rounded-xl border border-dashed border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 placeholder-stone-300 dark:placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
-                  />
+          <div className="flex flex-1 overflow-hidden">
+            {/* Desktop: Category sidebar */}
+            <div className="hidden sm:block w-52 flex-shrink-0 bg-white dark:bg-stone-900 border-r border-stone-100 dark:border-stone-800 overflow-y-auto py-2">
+              {categories.map(c => {
+                const isActive = activeCat === c.id
+                return (
                   <button
-                    onClick={() => addItem(activeCatData.id)}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                    key={c.id}
+                    onClick={() => setActiveCat(c.id)}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 text-sm transition-all
+                      ${isActive
+                        ? 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 font-semibold border-r-2 border-teal-500'
+                        : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 font-medium'}`}
                   >
-                    <Plus size={14} />
-                    Add
+                    <span className="flex items-center gap-2 truncate">
+                      <span className={isActive ? 'text-teal-600' : 'text-stone-400'}>{c.icon}</span>
+                      <span className="truncate">{c.title}</span>
+                    </span>
+                    <span className="text-[11px] font-mono bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400 rounded-full px-1.5 py-0.5 ml-1 flex-shrink-0">
+                      {c.items.length}
+                    </span>
                   </button>
-                </div>
-              </>
-            )}
+                )
+              })}
+            </div>
+
+            {/* Item editor */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 sm:py-6">
+              {activeCatData && (
+                <>
+                  <div className="mb-4 sm:mb-5 pb-3 sm:pb-4 border-b border-stone-100 dark:border-stone-800">
+                    <h2 className="font-serif text-xl sm:text-2xl font-semibold text-stone-900 dark:text-stone-100 flex items-center gap-2">
+                      <span className="text-stone-400">{activeCatData.icon}</span>
+                      {activeCatData.title}
+                    </h2>
+                    <p className="text-xs text-stone-400 dark:text-stone-500 mt-1">
+                      {activeCatData.items.length} items · tap a badge to change priority
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    {sortItems(activeCatData.items).map(item => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        catId={activeCatData.id}
+                        expandedNotes={expandedNotes}
+                        onToggleNote={id => setExpandedNotes(p => ({ ...p, [id]: !p[id] }))}
+                        onUpdate={updateItem}
+                        onRemove={removeItem}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Add item */}
+                  <div className="flex gap-2 mt-4">
+                    <input
+                      value={newItem}
+                      onChange={e => setNewItem(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addItem(activeCatData.id)}
+                      placeholder={`Add item to ${activeCatData.title}…`}
+                      className="flex-1 text-sm px-3.5 py-2.5 rounded-xl border border-dashed border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 text-stone-800 dark:text-stone-100 placeholder-stone-300 dark:placeholder-stone-600 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent"
+                    />
+                    <button
+                      onClick={() => addItem(activeCatData.id)}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      <Plus size={14} />
+                      Add
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
