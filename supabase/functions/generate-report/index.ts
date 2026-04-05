@@ -1673,9 +1673,10 @@ DECISIONS:
 ${branchLines}`;
 
   const focusMap: Record<ReportType, string> = {
-    "move-overview": "overall move readiness, sell/buy coordination, and timeline risk",
-    "home-sale":     "listing readiness, sell-side task priority, and path to market",
-    "house-hunt":    "property options, school fit for a kindergartener, and buy-side decision criteria",
+    "move-overview":        "overall move readiness, sell/buy coordination, and timeline risk",
+    "home-sale":            "listing readiness, sell-side task priority, and path to market",
+    "house-hunt":           "property options, school fit for a kindergartener, and buy-side decision criteria",
+    "charlotte-relocation": "Charlotte relocation financial analysis and planning",
   };
 
   const system =
@@ -1694,4 +1695,433 @@ Target 350–500 words. Be specific — reference actual addresses, names, and t
   const userMessage = `Write the analysis for this move planning data:\n\n${dataContext}`;
 
   return { system, userMessage };
+}
+
+// ── Charlotte Relocation static HTML ──────────────────────────────────────────
+
+function getCharlotteRelocationHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charlotte Relocation Report — Safal & Family · 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0f1923;
+    --navy2: #162232;
+    --teal: #1a9e7a;
+    --teal-light: #e6f7f2;
+    --teal-mid: #0d6e56;
+    --amber: #d4890a;
+    --amber-light: #fef3e2;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --blue: #2463ae;
+    --blue-light: #e8f0fb;
+    --purple: #6c4fcf;
+    --purple-light: #f0edfb;
+    --gray: #f5f5f3;
+    --gray2: #e8e8e4;
+    --gray3: #b0aea8;
+    --text: #1a1a18;
+    --text2: #4a4a45;
+    --text3: #7a7a74;
+    --white: #ffffff;
+    --border: #e0dfd8;
+    --serif: 'Playfair Display', Georgia, serif;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: #f0efea; color: var(--text); font-size: 14px; line-height: 1.6; }
+  .report-header { background: var(--navy); color: white; padding: 52px 64px 44px; position: relative; overflow: hidden; }
+  .report-header::before { content: ''; position: absolute; top: -60px; right: -60px; width: 320px; height: 320px; border-radius: 50%; border: 1px solid rgba(26,158,122,0.15); }
+  .report-header::after { content: ''; position: absolute; top: -20px; right: -20px; width: 180px; height: 180px; border-radius: 50%; border: 1px solid rgba(26,158,122,0.25); }
+  .report-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--teal); margin-bottom: 12px; }
+  .report-title { font-family: var(--serif); font-size: 38px; font-weight: 700; line-height: 1.15; color: white; margin-bottom: 8px; max-width: 520px; }
+  .report-sub { font-size: 14px; color: rgba(255,255,255,0.55); font-weight: 300; margin-bottom: 36px; }
+  .header-scorecards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; max-width: 820px; }
+  .header-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; padding: 16px 18px; }
+  .header-card .hc-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255,255,255,0.45); margin-bottom: 6px; font-family: var(--mono); }
+  .header-card .hc-val { font-size: 22px; font-weight: 600; color: white; line-height: 1; margin-bottom: 3px; }
+  .header-card .hc-sub { font-size: 10px; color: rgba(255,255,255,0.4); }
+  .header-card.teal .hc-val { color: #4cd9ac; }
+  .header-card.amber .hc-val { color: #f0b84e; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 40px 40px 80px; }
+  .section { margin-bottom: 52px; }
+  .section-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--navy); }
+  .section-num { font-family: var(--mono); font-size: 11px; color: var(--teal); background: var(--teal-light); padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+  .section-title { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--navy); }
+  .section-desc { font-size: 13px; color: var(--text3); margin-left: auto; max-width: 340px; text-align: right; line-height: 1.4; }
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 22px 24px; }
+  .card-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .metric-card { background: var(--gray); border-radius: 10px; padding: 16px 18px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; font-family: var(--mono); letter-spacing: 0.04em; }
+  .metric-val { font-size: 24px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 3px; }
+  .metric-sub { font-size: 11px; color: var(--text3); }
+  .metric-card.green { background: var(--teal-light); }
+  .metric-card.green .metric-val { color: var(--teal-mid); }
+  .metric-card.amber { background: var(--amber-light); }
+  .metric-card.amber .metric-val { color: var(--amber); }
+  .metric-card.red { background: var(--red-light); }
+  .metric-card.red .metric-val { color: var(--red); }
+  .metric-card.blue { background: var(--blue-light); }
+  .metric-card.blue .metric-val { color: var(--blue); }
+  .metric-card.purple { background: var(--purple-light); }
+  .metric-card.purple .metric-val { color: var(--purple); }
+  .badge { display: inline-block; font-size: 10px; padding: 3px 9px; border-radius: 5px; font-weight: 600; font-family: var(--mono); letter-spacing: 0.04em; }
+  .badge-green { background: var(--teal-light); color: var(--teal-mid); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-blue { background: var(--blue-light); color: var(--blue); }
+  .badge-navy { background: rgba(15,25,35,0.08); color: var(--navy); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); border-bottom: 1px solid var(--border); font-weight: 500; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--gray2); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr.highlight td { background: var(--teal-light); }
+  tr.highlight td:first-child { border-left: 3px solid var(--teal); }
+  .bar-track { background: var(--gray2); border-radius: 4px; height: 8px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .bar-row .bar-label { width:180px; font-size:12px; color:var(--text2); flex-shrink:0; line-height:1.3; }
+  .bar-row .bar-pct { width:64px; font-size:12px; font-weight:600; color:var(--text); text-align:right; flex-shrink:0; }
+  .bar-row .bar-track { flex:1; }
+  .scenario-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; position: relative; overflow: hidden; }
+  .scenario-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .scenario-card.green::before { background: var(--teal); }
+  .scenario-card.amber::before { background: var(--amber); }
+  .scenario-card.blue::before { background: var(--blue); }
+  .scenario-title { font-family: var(--serif); font-size: 16px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+  .scenario-sub { font-size: 11px; color: var(--text3); margin-bottom: 14px; }
+  .s-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; border-bottom: 1px solid var(--gray2); }
+  .s-row:last-of-type { border-bottom: none; }
+  .s-row .key { color: var(--text2); }
+  .s-row .val { font-weight: 600; color: var(--text); }
+  .scenario-note { font-size: 11px; color: var(--text3); margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .dti-row { margin-top: 12px; }
+  .dti-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .dti-track { background: var(--gray2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .dti-fill { height: 100%; border-radius: 4px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .footnote { font-size: 11px; color: var(--text3); font-style: italic; margin-top: 10px; }
+  .program-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .program-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 10px; }
+  .program-name { font-weight: 600; font-size: 13px; color: var(--navy); margin-bottom: 2px; }
+  .program-type { font-size: 10px; font-family: var(--mono); color: var(--text3); margin-bottom: 8px; letter-spacing: 0.06em; }
+  .program-amount { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .program-detail { font-size: 11px; color: var(--text2); line-height: 1.5; }
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before { content: ''; position: absolute; left: 7px; top: 8px; bottom: 8px; width: 2px; background: var(--gray2); }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-dot { position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--white); background: var(--teal); }
+  .tl-time { font-family: var(--mono); font-size: 10px; color: var(--teal); font-weight: 500; }
+  .tl-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .tl-detail { font-size: 11px; color: var(--text3); }
+  .report-footer { background: var(--navy); color: rgba(255,255,255,0.4); text-align: center; padding: 24px; font-size: 11px; font-family: var(--mono); letter-spacing: 0.06em; }
+  .opp-row { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--gray2); }
+  .opp-row:last-child { border-bottom: none; }
+  .opp-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .opp-label { font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 2px; }
+  .opp-detail { font-size: 11px; color: var(--text3); }
+  .opp-range { font-size: 18px; font-weight: 600; margin-left: auto; white-space: nowrap; }
+  @media print {
+    body { background: white; }
+    .page { padding: 20px; }
+    .report-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  @media (max-width: 640px) {
+    .report-header { padding: 32px 20px 28px; }
+    .report-title { font-size: 26px; }
+    .report-sub { margin-bottom: 20px; }
+    .header-scorecards { grid-template-columns: 1fr 1fr; }
+    .page { padding: 20px 16px 48px; }
+    .grid-2, .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr; }
+    .section-header { flex-wrap: wrap; }
+    .section-desc { margin-left: 0; text-align: left; max-width: 100%; }
+    table { font-size: 12px; }
+    th, td { padding: 8px; }
+    .opp-row { flex-wrap: wrap; gap: 10px; }
+    .opp-range { margin-left: 0; }
+    .bar-row .bar-label { width: 120px; }
+  }
+  @media (max-width: 400px) {
+    .header-scorecards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="report-header">
+  <div class="report-label">Financial Impact Report · April 2026</div>
+  <div class="report-title">Des Moines → Charlotte<br>Relocation Analysis</div>
+  <div class="report-sub">Safal & Family · Combined Household · Based on Origin Financial Data + Market Research</div>
+  <div class="header-scorecards">
+    <div class="header-card teal"><div class="hc-label">Combined gross/mo (today)</div><div class="hc-val">$13.5K</div><div class="hc-sub">Safal + wife est.</div></div>
+    <div class="header-card teal"><div class="hc-label">Target combined (Charlotte)</div><div class="hc-val">$19–22K</div><div class="hc-sub">EMC adj. + RN upgrade</div></div>
+    <div class="header-card amber"><div class="hc-label">COL premium</div><div class="hc-val">+21%</div><div class="hc-sub">Charlotte vs Des Moines</div></div>
+    <div class="header-card"><div class="hc-label">Nursing incentives</div><div class="hc-val">$30–50K</div><div class="hc-sub">Sign-on + housing assist.</div></div>
+    <div class="header-card"><div class="hc-label">State tax delta</div><div class="hc-val">+0.19%</div><div class="hc-sub">IA 3.8% → NC 3.99%</div></div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- SECTION 1: CURRENT BASELINE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <span class="section-title">Current Household Baseline — Des Moines</span>
+      <span class="section-desc">Your starting point before the move. All figures from Origin Financial data.</span>
+    </div>
+    <div class="grid-5" style="margin-bottom:18px">
+      <div class="metric-card blue"><div class="metric-label">Your net/mo (Origin avg)</div><div class="metric-val">$7,355</div><div class="metric-sub">Nov–Mar 5-mo avg</div></div>
+      <div class="metric-card"><div class="metric-label">Avg monthly spend</div><div class="metric-val">$6,978</div><div class="metric-sub">excl. March outlier</div></div>
+      <div class="metric-card green"><div class="metric-label">Wife avg net/mo</div><div class="metric-val">~$2,500</div><div class="metric-sub">$1,000–$1,300 biweekly</div></div>
+      <div class="metric-card"><div class="metric-label">Combined net/mo</div><div class="metric-val">~$10,275</div><div class="metric-sub">True household baseline</div></div>
+      <div class="metric-card amber"><div class="metric-label">Real net after expenses</div><div class="metric-val">~$2,920</div><div class="metric-sub">vs. $643 without wife</div></div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">6-Month Cash Flow — Your Income (Origin)</div>
+        <div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;font-family:var(--mono);color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">
+            <span>Month</span><span style="width:80px;text-align:right">Income</span><span style="width:80px;text-align:right">Expenses</span><span style="width:72px;text-align:right">Net</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray2);font-size:12px"><span style="width:30px;font-family:var(--mono);color:var(--text3)">Nov</span><div style="flex:1;margin:0 10px"><div class="bar-track" style="margin-bottom:3px"><div class="bar-fill" style="width:47%;background:var(--teal)"></div></div><div class="bar-track"><div class="bar-fill" style="width:39%;background:var(--amber)"></div></div></div><span style="width:80px;text-align:right;color:var(--text2)">$5,648</span><span style="width:80px;text-align:right;color:var(--text2)">$4,626</span><span style="width:72px;text-align:right;font-weight:600;color:var(--teal)">+$1,022</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray2);font-size:12px"><span style="width:30px;font-family:var(--mono);color:var(--text3)">Dec</span><div style="flex:1;margin:0 10px"><div class="bar-track" style="margin-bottom:3px"><div class="bar-fill" style="width:70%;background:var(--teal)"></div></div><div class="bar-track"><div class="bar-fill" style="width:42%;background:var(--amber)"></div></div></div><span style="width:80px;text-align:right;color:var(--text2)">$8,429</span><span style="width:80px;text-align:right;color:var(--text2)">$5,024</span><span style="width:72px;text-align:right;font-weight:600;color:var(--teal)">+$3,405</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray2);font-size:12px"><span style="width:30px;font-family:var(--mono);color:var(--text3)">Jan</span><div style="flex:1;margin:0 10px"><div class="bar-track" style="margin-bottom:3px"><div class="bar-fill" style="width:56%;background:var(--teal)"></div></div><div class="bar-track"><div class="bar-fill" style="width:55%;background:var(--amber)"></div></div></div><span style="width:80px;text-align:right;color:var(--text2)">$6,673</span><span style="width:80px;text-align:right;color:var(--text2)">$6,566</span><span style="width:72px;text-align:right;font-weight:600;color:var(--teal)">+$107</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray2);font-size:12px"><span style="width:30px;font-family:var(--mono);color:var(--text3)">Feb</span><div style="flex:1;margin:0 10px"><div class="bar-track" style="margin-bottom:3px"><div class="bar-fill" style="width:79%;background:var(--teal)"></div></div><div class="bar-track"><div class="bar-fill" style="width:60%;background:var(--amber)"></div></div></div><span style="width:80px;text-align:right;color:var(--text2)">$9,509</span><span style="width:80px;text-align:right;color:var(--text2)">$7,251</span><span style="width:72px;text-align:right;font-weight:600;color:var(--teal)">+$2,258</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:12px"><span style="width:30px;font-family:var(--mono);color:var(--text3)">Mar</span><div style="flex:1;margin:0 10px"><div class="bar-track" style="margin-bottom:3px"><div class="bar-fill" style="width:72%;background:var(--teal)"></div></div><div class="bar-track"><div class="bar-fill" style="width:95%;background:var(--amber)"></div></div></div><span style="width:80px;text-align:right;color:var(--text2)">$8,618</span><span style="width:80px;text-align:right;color:var(--text2)">$11,421</span><span style="width:72px;text-align:right;font-weight:600;color:var(--red)">−$2,803</span></div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:11px;color:var(--text3);margin-bottom:4px"><span><span style="display:inline-block;width:10px;height:10px;background:var(--teal);border-radius:2px;margin-right:4px"></span>Income</span><span><span style="display:inline-block;width:10px;height:10px;background:var(--amber);border-radius:2px;margin-right:4px"></span>Expenses</span></div>
+        <p class="footnote">March spike to $11.4K in expenses is an outlier worth auditing before lender review.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Where The Money Goes (Avg Monthly)</div>
+        <div style="margin:8px 0 12px">
+          <div class="bar-row"><span class="bar-label">Housing (est.)</span><div class="bar-track"><div class="bar-fill" style="width:31%;background:var(--blue)"></div></div><span class="bar-pct">$1,800</span></div>
+          <div class="bar-row"><span class="bar-label">Other expenses</span><div class="bar-track"><div class="bar-fill" style="width:52%;background:var(--amber)"></div></div><span class="bar-pct">$5,204</span></div>
+          <div class="bar-row"><span class="bar-label">Net savings</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--teal)"></div></div><span class="bar-pct">$2,920</span></div>
+        </div>
+        <p class="footnote">Housing includes current Des Moines mortgage est. $1,800/mo.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: SALARY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <span class="section-title">Safal's Salary — EMC Geo-Adjustment vs. Market</span>
+      <span class="section-desc">Staying at EMC is safe but likely below COL break-even. Open market is the upside play post-move.</span>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-title">Salary Comparison — Des Moines vs Charlotte (SE / SE III)</div>
+      <div style="margin:8px 0 4px">
+        <div class="bar-row"><span class="bar-label">Current (Des Moines)</span><div class="bar-track"><div class="bar-fill" style="width:20%;background:var(--gray3)"></div></div><span class="bar-pct">$118K</span></div>
+        <div class="bar-row"><span class="bar-label">EMC geo-adj. conservative</span><div class="bar-track"><div class="bar-fill" style="width:30%;background:#2463ae88"></div></div><span class="bar-pct">$127K</span></div>
+        <div class="bar-row"><span class="bar-label">EMC geo-adj. mid (likely)</span><div class="bar-track"><div class="bar-fill" style="width:37%;background:var(--blue)"></div></div><span class="bar-pct">$133K</span></div>
+        <div class="bar-row"><span class="bar-label">EMC geo-adj. optimistic</span><div class="bar-track"><div class="bar-fill" style="width:43%;background:#1a9e7a88"></div></div><span class="bar-pct">$139K</span></div>
+        <div class="bar-row"><span class="bar-label">COL break-even threshold</span><div class="bar-track"><div class="bar-fill" style="width:48%;background:var(--amber)"></div></div><span class="bar-pct">$143K</span></div>
+        <div class="bar-row"><span class="bar-label">Charlotte market (SE avg)</span><div class="bar-track"><div class="bar-fill" style="width:52%;background:#6c4fcf44"></div></div><span class="bar-pct">$147K</span></div>
+        <div class="bar-row"><span class="bar-label">Open market target (SE III)</span><div class="bar-track"><div class="bar-fill" style="width:72%;background:var(--teal)"></div></div><span class="bar-pct">$165K</span></div>
+        <div class="bar-row"><span class="bar-label">Financial sector ceiling</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--purple)"></div></div><span class="bar-pct">$185K</span></div>
+      </div>
+      <p class="footnote" style="margin-top:8px">Bars scaled relative to $100K baseline. COL break-even = minimum required for household neutral in Charlotte.</p>
+    </div>
+    <div class="grid-4" style="margin-bottom:18px">
+      <div class="metric-card"><div class="metric-label">Current base (DM)</div><div class="metric-val">$118K</div><div class="metric-sub">EMC Insurance · SE III</div></div>
+      <div class="metric-card blue"><div class="metric-label">EMC geo-adj. mid</div><div class="metric-val">$133K</div><div class="metric-sub">+12.7% estimated</div></div>
+      <div class="metric-card amber"><div class="metric-label">COL break-even</div><div class="metric-val">$143K</div><div class="metric-sub">Neutral at Charlotte COL</div></div>
+      <div class="metric-card green"><div class="metric-label">Open market target</div><div class="metric-val">$165K</div><div class="metric-sub">Charlotte SE III avg</div></div>
+    </div>
+    <div class="grid-3">
+      <div class="scenario-card green">
+        <div class="scenario-title">Conservative — Stay at EMC</div>
+        <div class="scenario-sub">Geo-adjusted, low estimate</div>
+        <div class="s-row"><span class="key">Your base</span><span class="val">$127K</span></div>
+        <div class="s-row"><span class="key">Wife (Iowa RN)</span><span class="val">~$45K</span></div>
+        <div class="s-row"><span class="key">Combined gross</span><span class="val">$172K</span></div>
+        <div class="s-row"><span class="key">vs COL break-even</span><span class="val" style="color:var(--red)">−$16K short</span></div>
+        <div class="scenario-note">Tight. Wife must upgrade quickly or lifestyle compresses.</div>
+      </div>
+      <div class="scenario-card amber">
+        <div class="scenario-title">Base Case — EMC Mid + Wife CLT RN</div>
+        <div class="scenario-sub">Most likely near-term scenario</div>
+        <div class="s-row"><span class="key">Your base</span><span class="val">$133K</span></div>
+        <div class="s-row"><span class="key">Wife (Charlotte RN)</span><span class="val">~$100K</span></div>
+        <div class="s-row"><span class="key">Combined gross</span><span class="val">$233K</span></div>
+        <div class="s-row"><span class="key">vs COL break-even</span><span class="val" style="color:var(--teal)">+$74K headroom</span></div>
+        <div class="scenario-note">This is the scenario that makes the move financially sound.</div>
+      </div>
+      <div class="scenario-card blue">
+        <div class="scenario-title">Upside — Open Market + Wife CLT RN</div>
+        <div class="scenario-sub">12–24 months post-move</div>
+        <div class="s-row"><span class="key">Your base</span><span class="val">$165K+</span></div>
+        <div class="s-row"><span class="key">Wife (Charlotte RN)</span><span class="val">~$100K</span></div>
+        <div class="s-row"><span class="key">Combined gross</span><span class="val">$265K+</span></div>
+        <div class="s-row"><span class="key">vs COL break-even</span><span class="val" style="color:var(--teal)">+$122K headroom</span></div>
+        <div class="scenario-note">Strong buy position. 20% down on $550K home is achievable.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: WIFE'S NURSING OPPORTUNITY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <span class="section-title">Wife's Nursing Career — The Income Lever</span>
+      <span class="section-desc">Iowa RN rate ≈ $45K gross. Charlotte market pays $84–119K. This gap funds the move.</span>
+    </div>
+    <div class="grid-4" style="margin-bottom:18px">
+      <div class="metric-card"><div class="metric-label">Iowa RN gross (est.)</div><div class="metric-val">~$45K</div><div class="metric-sub">Based on $2,500/mo net</div></div>
+      <div class="metric-card green"><div class="metric-label">Charlotte RN avg (Atrium)</div><div class="metric-val">$84–119K</div><div class="metric-sub">Full-time floor/ceiling</div></div>
+      <div class="metric-card amber"><div class="metric-label">Sign-on bonus range</div><div class="metric-val">$15–30K</div><div class="metric-sub">Atrium / Novant typical</div></div>
+      <div class="metric-card blue"><div class="metric-label">Housing assist. programs</div><div class="metric-val">$5–20K</div><div class="metric-sub">NCHFA + hospital programs</div></div>
+    </div>
+    <div class="grid-3" style="margin-bottom:18px">
+      <div class="program-card">
+        <div class="program-icon" style="background:var(--teal-light)">🏥</div>
+        <div class="program-name">Atrium Health</div>
+        <div class="program-type">Primary Target</div>
+        <div class="program-amount" style="color:var(--teal)">$15–25K sign-on</div>
+        <div class="program-detail">Largest Charlotte health system. ICU/ED RNs command top rates. 2-year commitment typical. Interview pipeline: 4–8 weeks.</div>
+      </div>
+      <div class="program-card">
+        <div class="program-icon" style="background:var(--blue-light)">🏥</div>
+        <div class="program-name">Novant Health</div>
+        <div class="program-type">Secondary Target</div>
+        <div class="program-amount" style="color:var(--blue)">$10–20K sign-on</div>
+        <div class="program-detail">Strong benefits package. Presbyterian Medical Center flagship. Competitive with Atrium in base pay. Often faster hiring.</div>
+      </div>
+      <div class="program-card">
+        <div class="program-icon" style="background:var(--purple-light)">🏠</div>
+        <div class="program-name">NCHFA Programs</div>
+        <div class="program-type">Down Payment Assist.</div>
+        <div class="program-amount" style="color:var(--purple)">Up to $15K</div>
+        <div class="program-detail">NC Home Advantage Mortgage. Healthcare workers qualify. Forgivable after 15 years. Must use approved lender.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Household Income Transformation</div>
+      <div style="margin:8px 0 12px">
+        <div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Today (Des Moines) — <strong>$163K</strong></div><div class="bar-track" style="height:14px;border-radius:6px;overflow:hidden;display:flex"><div style="width:45%;background:var(--blue);height:100%"></div><div style="width:17%;background:var(--teal);height:100%"></div></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">EMC mid + Wife Iowa RN — <strong>$178K</strong></div><div class="bar-track" style="height:14px;border-radius:6px;overflow:hidden;display:flex"><div style="width:50%;background:var(--blue);height:100%"></div><div style="width:17%;background:var(--teal);height:100%"></div></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">EMC mid + Wife Charlotte RN — <strong>$233K</strong></div><div class="bar-track" style="height:14px;border-radius:6px;overflow:hidden;display:flex"><div style="width:50%;background:var(--blue);height:100%"></div><div style="width:38%;background:var(--teal);height:100%"></div></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">EMC opt. + Wife Charlotte RN — <strong>$239K</strong></div><div class="bar-track" style="height:14px;border-radius:6px;overflow:hidden;display:flex"><div style="width:52%;background:var(--blue);height:100%"></div><div style="width:38%;background:var(--teal);height:100%"></div></div></div>
+        <div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">Open market + Wife Charlotte RN — <strong>$265K</strong></div><div class="bar-track" style="height:14px;border-radius:6px;overflow:hidden;display:flex"><div style="width:62%;background:var(--blue);height:100%"></div><div style="width:38%;background:var(--teal);height:100%"></div></div></div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px;color:var(--text3);margin-bottom:8px"><span><span style="display:inline-block;width:10px;height:10px;background:var(--blue);border-radius:2px;margin-right:4px"></span>Your income</span><span><span style="display:inline-block;width:10px;height:10px;background:var(--teal);border-radius:2px;margin-right:4px"></span>Wife's income</span></div>
+      <p class="footnote">Wife's current gross estimated at ~$45K based on $26–34K/yr net take-home. Charlotte RN avg ($100K) assumes full-time at Atrium. Open market scenario = you switching employers 12+ months post-move.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 4: MOVE ECONOMICS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <span class="section-title">Move Economics — Cost of Living & Housing</span>
+      <span class="section-desc">Charlotte COL is 21% above Des Moines. Housing is the primary driver.</span>
+    </div>
+    <div class="grid-4" style="margin-bottom:18px">
+      <div class="metric-card amber"><div class="metric-label">COL premium</div><div class="metric-val">+21%</div><div class="metric-sub">Charlotte vs Des Moines</div></div>
+      <div class="metric-card"><div class="metric-label">Median home price (CLT)</div><div class="metric-val">$415K</div><div class="metric-sub">Charlotte metro 2026</div></div>
+      <div class="metric-card blue"><div class="metric-label">Target price range</div><div class="metric-val">$450–550K</div><div class="metric-sub">Good schools + commute</div></div>
+      <div class="metric-card green"><div class="metric-label">State income tax delta</div><div class="metric-val">+0.19%</div><div class="metric-sub">IA 3.8% → NC 3.99%</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:18px">
+      <div class="card">
+        <div class="card-title">Monthly Cost Comparison — Des Moines vs Charlotte</div>
+        <table>
+          <thead><tr><th>Category</th><th>Des Moines</th><th>Charlotte</th><th>Delta</th></tr></thead>
+          <tbody>
+            <tr><td>Housing (PITI est.)</td><td>$1,800</td><td>$2,800–3,200</td><td style="color:var(--red)">+$1,000–1,400</td></tr>
+            <tr><td>Childcare / K-12</td><td>~$800</td><td>~$1,000</td><td style="color:var(--amber)">+$200</td></tr>
+            <tr><td>Groceries</td><td>~$900</td><td>~$1,050</td><td style="color:var(--amber)">+$150</td></tr>
+            <tr><td>Transportation</td><td>~$600</td><td>~$700</td><td style="color:var(--amber)">+$100</td></tr>
+            <tr><td>Utilities</td><td>~$200</td><td>~$180</td><td style="color:var(--teal)">−$20</td></tr>
+            <tr class="highlight"><td><strong>Total est.</strong></td><td><strong>~$4,300</strong></td><td><strong>~$5,730–6,130</strong></td><td><strong style="color:var(--red)">+$1,430–1,830</strong></td></tr>
+          </tbody>
+        </table>
+        <p class="footnote">Housing delta is the dominant cost driver. Wife's RN upgrade covers this gap entirely.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">DTI Analysis — Target Home Scenarios</div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">$450K home · 10% down · 7% rate</div>
+          <div class="dti-row"><div class="dti-label"><span>PITI ≈ $2,990/mo</span><span>DTI on $233K combined: <strong>15.4%</strong></span></div><div class="dti-track"><div class="dti-fill" style="width:41%;background:var(--teal)"></div></div></div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">$500K home · 10% down · 7% rate</div>
+          <div class="dti-row"><div class="dti-label"><span>PITI ≈ $3,322/mo</span><span>DTI on $233K combined: <strong>17.1%</strong></span></div><div class="dti-track"><div class="dti-fill" style="width:46%;background:var(--teal)"></div></div></div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px">$550K home · 20% down · 7% rate</div>
+          <div class="dti-row"><div class="dti-label"><span>PITI ≈ $3,253/mo</span><span>DTI on $265K upside: <strong>14.7%</strong></span></div><div class="dti-track"><div class="dti-fill" style="width:39%;background:var(--blue)"></div></div></div>
+        </div>
+        <p class="footnote" style="margin-top:12px">All DTI scenarios are well below the 43% conventional limit. Lenders will approve this household.</p>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="card">
+      <div class="card-title">Recommended Move Sequencing</div>
+      <div class="grid-2">
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">NOW — Apr 2026</div><div class="tl-label">Confirm EMC geo-adjustment amount</div><div class="tl-detail">Get the number in writing before making financial decisions</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">Apr–May 2026</div><div class="tl-label">Wife secures Atrium/Novant offer + sign-on</div><div class="tl-detail">Target $15–30K sign-on. Read commitment clause carefully.</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">May–Jun 2026</div><div class="tl-label">List Des Moines home</div><div class="tl-detail">Audit March expense spike first for lender review</div></div>
+          <div class="tl-item"><div class="tl-dot"></div><div class="tl-time">Jun–Aug 2026</div><div class="tl-label">Bridge rental in Charlotte (3–6 months)</div><div class="tl-detail">Sell DM + Rent CLT. Let sign-on bonuses land.</div></div>
+        </div>
+        <div class="timeline">
+          <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-time">Aug–Dec 2026</div><div class="tl-label">Accumulate to 20% down payment</div><div class="tl-detail">DM sale proceeds + combined savings + sign-on bonuses</div></div>
+          <div class="tl-item"><div class="tl-dot" style="background:var(--amber)"></div><div class="tl-time">Jan–Jun 2027</div><div class="tl-label">Buy Charlotte home — $450–550K range</div><div class="tl-detail">Good schools + commute. Fort Mill / Tega Cay / Waxhaw.</div></div>
+          <div class="tl-item"><div class="tl-dot" style="background:var(--purple)"></div><div class="tl-time">12–24 mo post-move</div><div class="tl-label">Pursue open market (Safal)</div><div class="tl-detail">Charlotte fintech/banking pays $155–175K for .NET/DDD</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: OPPORTUNITY SUMMARY -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <span class="section-title">Income Upside Opportunities</span>
+      <span class="section-desc">Total addressable upside beyond current household income over 2–3 years.</span>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Opportunity Stack</div>
+        <div class="opp-row"><div class="opp-icon" style="background:var(--teal-light)">💊</div><div><div class="opp-label">Wife: Iowa → Charlotte RN upgrade</div><div class="opp-detail">Atrium/Novant full-time RN. Base rate jump alone.</div></div><div class="opp-range" style="color:var(--teal)">+$55K/yr</div></div>
+        <div class="opp-row"><div class="opp-icon" style="background:var(--amber-light)">🏦</div><div><div class="opp-label">Wife: Nursing sign-on bonus</div><div class="opp-detail">One-time. Clawback if leaving before commitment period.</div></div><div class="opp-range" style="color:var(--amber)">+$15–30K</div></div>
+        <div class="opp-row"><div class="opp-icon" style="background:var(--blue-light)">💻</div><div><div class="opp-label">Safal: EMC geo-adjustment</div><div class="opp-detail">Mid estimate. Confirm before finalizing move plan.</div></div><div class="opp-range" style="color:var(--blue)">+$15K/yr</div></div>
+        <div class="opp-row"><div class="opp-icon" style="background:var(--purple-light)">🚀</div><div><div class="opp-label">Safal: Charlotte open market (.NET/DDD)</div><div class="opp-detail">Charlotte financial sector (.NET/DDD) pays $155–175K. Pursue 6–12 months post-move.</div></div><div class="opp-range" style="color:var(--blue)">+$40K/yr</div></div>
+      </div>
+      <div style="background:var(--navy); border-radius:14px; padding:28px 32px; color:white">
+        <div style="font-family:var(--serif); font-size:20px; font-weight:600; margin-bottom:6px">The Bottom Line</div>
+        <div style="font-size:13px; color:rgba(255,255,255,0.6); margin-bottom:22px">What this analysis says about your household's financial trajectory</div>
+        <div style="display:grid; grid-template-columns:1fr; gap:20px">
+          <div><div style="font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:var(--teal); text-transform:uppercase; margin-bottom:8px">The math that makes it work</div><div style="font-size:13px; color:rgba(255,255,255,0.8); line-height:1.7">EMC's geo-adjustment alone does <strong style="color:white">not</strong> cover Charlotte's COL premium at the mid estimate. But your wife's move into the Charlotte nursing market at $84–119K — versus her current Iowa RN rate — is the income lever that makes the whole equation work. The sign-on bonus ($15–30K) is essentially a moving cost subsidy.</div></div>
+          <div><div style="font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:#f0b84e; text-transform:uppercase; margin-bottom:8px">Key risk to manage</div><div style="font-size:13px; color:rgba(255,255,255,0.8); line-height:1.7">The March $11.4K expense spike in your Origin data needs to be explained before you go to a lender. One-time outlier = fine. Recurring category = problem. Also: sign-on bonuses are clawed back if she leaves before the commitment period — read the contract carefully.</div></div>
+          <div><div style="font-family:var(--mono); font-size:10px; letter-spacing:0.1em; color:#a78bfa; text-transform:uppercase; margin-bottom:8px">Recommended sequencing</div><div style="font-size:13px; color:rgba(255,255,255,0.8); line-height:1.7"><strong style="color:white">1.</strong> Confirm EMC adjustment amount before finalizing move<br><strong style="color:white">2.</strong> Wife secures Atrium or Novant offer with sign-on<br><strong style="color:white">3.</strong> Consider bridge rental (Sell DM + Rent CLT)<br><strong style="color:white">4.</strong> Let sign-on bonuses land, accumulate to 20% down<br><strong style="color:white">5.</strong> Buy Charlotte home 12–18 months post-move</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="report-footer">
+  Generated April 2026 · Based on Origin Financial Data, Glassdoor, Numbeo, NCHFA, Atrium Health, Novant Health, Tax Foundation · All figures are estimates for planning purposes only
+</div>
+
+</body>
+</html>`;
 }
