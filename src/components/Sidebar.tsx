@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CheckSquare, GitBranch, HelpCircle,
-  BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap, Users, ChevronDown, TrendingDown, FileText, MessageSquare, Clock, ListChecks, PanelLeftClose, PanelLeftOpen,
+  BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap, Users, ChevronDown, TrendingDown, FileText, MessageSquare, Clock, ClipboardList, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react'
 import { useUser } from '../hooks/useUser'
 import { useTheme } from '../hooks/useTheme'
@@ -28,7 +28,7 @@ const navGroups = [
       { to: '/comms',         label: 'Comms Log',    icon: MessageSquare },
       { to: '/deadlines',     label: 'Deadlines',    icon: Clock },
       { to: '/selling',       label: 'Selling',      icon: TrendingDown },
-      { to: '/buy-checklist', label: 'Buy Checklist',icon: ListChecks },
+      { to: '/home-checklist',label: 'Buy Checklist',icon: ClipboardList },
     ],
   },
   {
@@ -88,6 +88,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Props) 
         : 'text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-800 hover:text-stone-900 dark:hover:text-stone-100'
     }`
 
+  // Icon-only link for collapsed rail
   const iconLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center justify-center w-9 h-9 rounded-xl transition-all ${
       isActive
