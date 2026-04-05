@@ -2,7 +2,7 @@
 // src/types/reports.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type ReportType = "move-overview" | "home-sale" | "house-hunt";
+export type ReportType = "move-overview" | "home-sale" | "house-hunt" | "charlotte-relocation";
 
 export type ReportStatus = "pending" | "generating" | "complete" | "error";
 
@@ -40,6 +40,7 @@ export interface ReportTypeConfig {
   color:       string; // Tailwind text color class
   bgColor:     string; // Tailwind bg color class
   borderColor: string; // Tailwind border color class
+  isStatic:    boolean; // true = pre-built HTML, false = Claude-generated
 }
 
 export const REPORT_TYPE_CONFIGS: ReportTypeConfig[] = [
@@ -51,6 +52,7 @@ export const REPORT_TYPE_CONFIGS: ReportTypeConfig[] = [
     color:       "text-blue-800",
     bgColor:     "bg-blue-50",
     borderColor: "border-blue-400",
+    isStatic:    false,
   },
   {
     type:        "home-sale",
@@ -60,6 +62,7 @@ export const REPORT_TYPE_CONFIGS: ReportTypeConfig[] = [
     color:       "text-orange-700",
     bgColor:     "bg-orange-50",
     borderColor: "border-orange-400",
+    isStatic:    false,
   },
   {
     type:        "house-hunt",
@@ -69,5 +72,16 @@ export const REPORT_TYPE_CONFIGS: ReportTypeConfig[] = [
     color:       "text-green-800",
     bgColor:     "bg-green-50",
     borderColor: "border-green-400",
+    isStatic:    false,
+  },
+  {
+    type:        "charlotte-relocation",
+    label:       "Charlotte Relocation Guide",
+    description: "Comprehensive guide to relocating to Charlotte — neighborhoods, schools, costs, and local insights.",
+    icon:        "📍",
+    color:       "text-purple-800",
+    bgColor:     "bg-purple-50",
+    borderColor: "border-purple-400",
+    isStatic:    true,
   },
 ];
