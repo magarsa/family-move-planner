@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronDown, MapPin, GraduationCap, Trees, Home, LayoutDashboard,
@@ -9,6 +9,7 @@ import {
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import { summarizeProfile } from '../lib/summarizeProfile'
+import { saveProfileCategories, loadProfileItems, PROFILE_ITEMS } from '../lib/houseProfileData'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -298,7 +299,38 @@ export default function HouseProfile() {
   const [aiSummary, setAiSummary] = useState('')
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState('')
+  const [, setProfileLoading] = useState(true)
   const printRef = useRef<HTMLDivElement>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Load saved categories from Supabase on mount, merging saved priorities into INITIAL_CATEGORIES
+  // so any new items added to INITIAL_CATEGORIES in code are always present.
+  useEffect(() => {
+    loadProfileItems().then(savedItems => {
+      if (savedItems === PROFILE_ITEMS) {
+        // No saved data yet — use defaults as-is
+        setProfileLoading(false)
+        return
+      }
+      const savedMap = new Map(savedItems.map(i => [i.id, i]))
+      setCategories(prev => prev.map(cat => ({
+        ...cat,
+        items: cat.items.map(item => {
+          const saved = savedMap.get(item.id)
+          return saved ? { ...item, priority: saved.priority as PriorityId, note: item.note } : item
+        }),
+      })))
+      setProfileLoading(false)
+    }).catch(() => setProfileLoading(false))
+  }, [])
+
+  // Debounced save — fires 1.5s after the last category change
+  function persistCategories(updated: Category[]) {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      saveProfileCategories(updated).catch(err => console.error('Failed to save profile', err))
+    }, 1500)
+  }
 
   const generateSummary = async () => {
     setSummaryLoading(true)
@@ -320,27 +352,39 @@ export default function HouseProfile() {
   }
 
   const updateItem = (catId: string, itemId: string, field: keyof Item, val: string) => {
-    setCategories(prev => prev.map(c => c.id !== catId ? c : {
-      ...c,
-      items: c.items.map(i => i.id !== itemId ? i : { ...i, [field]: val }),
-    }))
+    setCategories(prev => {
+      const updated = prev.map(c => c.id !== catId ? c : {
+        ...c,
+        items: c.items.map(i => i.id !== itemId ? i : { ...i, [field]: val }),
+      })
+      persistCategories(updated)
+      return updated
+    })
   }
 
   const addItem = (catId: string) => {
     if (!newItem.trim()) return
     const id = `custom_${Date.now()}`
-    setCategories(prev => prev.map(c => c.id !== catId ? c : {
-      ...c,
-      items: [...c.items, { id, label: newItem.trim(), priority: 'nice', note: '' }],
-    }))
+    setCategories(prev => {
+      const updated = prev.map(c => c.id !== catId ? c : {
+        ...c,
+        items: [...c.items, { id, label: newItem.trim(), priority: 'nice' as PriorityId, note: '' }],
+      })
+      persistCategories(updated)
+      return updated
+    })
     setNewItem('')
   }
 
   const removeItem = (catId: string, itemId: string) => {
-    setCategories(prev => prev.map(c => c.id !== catId ? c : {
-      ...c,
-      items: c.items.filter(i => i.id !== itemId),
-    }))
+    setCategories(prev => {
+      const updated = prev.map(c => c.id !== catId ? c : {
+        ...c,
+        items: c.items.filter(i => i.id !== itemId),
+      })
+      persistCategories(updated)
+      return updated
+    })
   }
 
   const activeCatData = categories.find(c => c.id === activeCat)
