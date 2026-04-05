@@ -16,6 +16,8 @@ import { lookupProperty } from '../lib/lookupProperty'
 import type { ProximityData, NearbySchool } from '../lib/lookupProperty'
 import { METRO_AREAS, AREA_OPTIONS, METRO_FILTERS } from '../lib/metroAreas'
 import type { MetroFilter } from '../lib/metroAreas'
+import { scoreProfileFit, loadProfileItems } from '../lib/houseProfileData'
+import type { ProfileFitResult, ProfileItem } from '../lib/houseProfileData'
 
 type PropertyRow = Tables<'properties'>
 type BranchRow = Tables<'branches'>
@@ -353,17 +355,128 @@ function NearbySchoolsPanel({ linkedSchools, proximitySchools, allSchools, onNav
   )
 }
 
+// ─── Profile Fit Badge ────────────────────────────────────────────────────────
+
+function profileFitColor(score: number) {
+  if (score >= 75) return { pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400', ring: 'ring-emerald-300 dark:ring-emerald-700' }
+  if (score >= 50) return { pill: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', ring: 'ring-amber-300 dark:ring-amber-700' }
+  return { pill: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', ring: 'ring-red-300 dark:ring-red-700' }
+}
+
+function ProfileFitBadge({ fit }: { fit: ProfileFitResult }) {
+  const [open, setOpen] = useState(false)
+  const colors = profileFitColor(fit.score)
+
+  // Limit lists to keep popover compact
+  const shownMusts    = fit.mustMatches.slice(0, 6)
+  const shownBreakers = fit.dealBreakHits.slice(0, 4)
+  const shownUnknown  = fit.mustUnknown.slice(0, 4)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(v => !v) }}
+        title="Profile fit — tap to see must-have matches"
+        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold ring-1 transition-all ${colors.pill} ${colors.ring}`}
+      >
+        <span>🏡</span>
+        <span>{fit.score}%</span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop to close */}
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ duration: 0.15 }}
+              onClick={e => e.stopPropagation()}
+              className="absolute right-0 top-[calc(100%+6px)] z-50 w-72 bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-xl p-4 space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-stone-700 dark:text-stone-200 uppercase tracking-wide">Profile Fit</span>
+                <span className={`text-sm font-bold ${profileFitColor(fit.score).pill} px-2 py-0.5 rounded-lg`}>{fit.score}%</span>
+              </div>
+
+              {shownBreakers.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-red-600 dark:text-red-400 mb-1.5 flex items-center gap-1">
+                    <span>⛔</span> Deal-breaker flags
+                  </div>
+                  <ul className="space-y-1">
+                    {shownBreakers.map(item => (
+                      <li key={item.id} className="flex items-start gap-1.5 text-xs text-red-700 dark:text-red-400">
+                        <span className="mt-0.5 flex-shrink-0">✗</span>
+                        <span>{item.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {shownMusts.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1.5 flex items-center gap-1">
+                    <span>✅</span> Must-haves mentioned
+                  </div>
+                  <ul className="space-y-1">
+                    {shownMusts.map(item => (
+                      <li key={item.id} className="flex items-start gap-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                        <span className="mt-0.5 flex-shrink-0">✓</span>
+                        <span>{item.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {shownUnknown.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-stone-400 dark:text-stone-500 mb-1.5 flex items-center gap-1">
+                    <span>–</span> Not mentioned
+                  </div>
+                  <ul className="space-y-1">
+                    {shownUnknown.map(item => (
+                      <li key={item.id} className="flex items-start gap-1.5 text-xs text-stone-400 dark:text-stone-500">
+                        <span className="mt-0.5 flex-shrink-0">?</span>
+                        <span>{item.label}</span>
+                      </li>
+                    ))}
+                    {fit.mustUnknown.length > 4 && (
+                      <li className="text-xs text-stone-400 dark:text-stone-500 italic pl-4">
+                        +{fit.mustUnknown.length - 4} more not mentioned
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              <p className="text-[10px] text-stone-400 dark:text-stone-600 border-t border-stone-100 dark:border-stone-800 pt-2">
+                Based on keyword matching against AI analysis. Not a guaranteed assessment.
+              </p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ─── PropertyCard ────────────────────────────────────────────────────────────
 
 interface PropertyCardProps {
   property: PropertyRow
   branches: BranchRow[]
   schools: SchoolRow[]
+  profileItems: ProfileItem[]
   onUpdate: (id: string, patch: Partial<PropertyRow>) => void
   onDelete: (id: string) => void
 }
 
-function PropertyCard({ property, branches, schools, onUpdate, onDelete }: PropertyCardProps) {
+function PropertyCard({ property, branches, schools, profileItems, onUpdate, onDelete }: PropertyCardProps) {
   const { userName, isDemoMode } = useUser()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -393,6 +506,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
   const status = (property.status || 'Considering') as PropertyStatus
   const style = STATUS_STYLES[status]
   const analysis = property.ai_analysis as unknown as AiAnalysis | null
+  const profileFit: ProfileFitResult | null = analysis ? scoreProfileFit(analysis, profileItems) : null
 
   async function save() {
     if (isDemoMode) return
@@ -582,6 +696,7 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
               analysis.overallGrade === 'D' ? 'bg-orange-500' : 'bg-red-500'
             }`}>{analysis.overallGrade}</span>
           )}
+          {profileFit && <ProfileFitBadge fit={profileFit} />}
         </div>
         <a
           href={buildZillowUrl(property)}
@@ -821,6 +936,46 @@ function PropertyCard({ property, branches, schools, onUpdate, onDelete }: Prope
                 />
               </div>
 
+              {/* Profile Fit */}
+              {profileFit && (
+                <div>
+                  <div className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                    🏡 Profile Fit
+                  </div>
+                  <div className="flex items-start gap-3 flex-wrap">
+                    <ProfileFitBadge fit={profileFit} />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      {profileFit.dealBreakHits.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {profileFit.dealBreakHits.map(item => (
+                            <span key={item.id} className="text-xs bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-lg">
+                              ✗ {item.label}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {profileFit.mustMatches.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {profileFit.mustMatches.slice(0, 5).map(item => (
+                            <span key={item.id} className="text-xs bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-lg">
+                              ✓ {item.label}
+                            </span>
+                          ))}
+                          {profileFit.mustMatches.length > 5 && (
+                            <span className="text-xs text-stone-400 dark:text-stone-500 px-1 py-0.5">
+                              +{profileFit.mustMatches.length - 5} more
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {profileFit.mustMatches.length === 0 && profileFit.dealBreakHits.length === 0 && (
+                        <p className="text-xs text-stone-400 dark:text-stone-500">Run AI analysis to see profile fit details.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* AI Analysis Panel */}
               <AiAnalysisPanel
                 entityType="property"
@@ -1041,6 +1196,7 @@ export default function Properties() {
   const [properties, setProperties] = useState<PropertyRow[]>([])
   const [branches, setBranches] = useState<BranchRow[]>([])
   const [schools, setSchools] = useState<SchoolRow[]>([])
+  const [profileItems, setProfileItems] = useState<ProfileItem[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [statusFilter, setStatusFilter] = useState<PropertyStatus | 'All'>('All')
@@ -1085,6 +1241,7 @@ export default function Properties() {
     fetchProperties()
     fetchBranches()
     fetchSchools()
+    loadProfileItems().then(setProfileItems).catch(() => {})
     if (isDemoMode) return
     const ch = supabase.channel('properties-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'properties' }, fetchProperties)
@@ -1219,6 +1376,7 @@ export default function Properties() {
               property={property}
               branches={branches}
               schools={schools}
+              profileItems={profileItems}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
             />

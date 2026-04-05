@@ -1,38 +1,52 @@
-/node_modules
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+
+# Environment variables
 .env
-.vercel/output
+.env.local
 .env*.local
-/dist
-/build
-/.next
-/out
+
+# Supabase
+/supabase/.temp
+
+# Deployment
 /.vercel
-.DS_Store
+/.next
+
+# Logs
 *.log
+
+# TypeScript
 *.tsbuildinfo
-.idea
-.vscode
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.bak
-*.tmp
-*.env
-*.env.local
-*.env.development
-*.env.test
-*.env.production
-*.env.development.local
-*.env.test.local
-*.env.production.local
+
+# Certificates & keys
 *.pem
 *.key
 *.crt
 *.pfx
 *.cer
 *.csr
-*.log
-*.sql
+
+# Editor
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+
+# Temp files
+*.swp
+*.bak
+*.tmp
+
+# Local databases (not Supabase migrations)
 *.sqlite
 *.sqlite3
 *.db

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, CheckSquare, GitBranch, HelpCircle,
-  BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap, Users, ChevronDown, TrendingDown, FileText, MessageSquare, Clock, ClipboardList, PanelLeftClose, PanelLeftOpen,
+  BookOpen, User2, LogOut, Sun, Moon, Home, GraduationCap, Users, ChevronDown, TrendingDown, FileText, MessageSquare, Clock, ClipboardList, PanelLeftClose, PanelLeftOpen, ListChecks,
 } from 'lucide-react'
 import { useUser } from '../hooks/useUser'
 import { useTheme } from '../hooks/useTheme'
@@ -19,31 +19,32 @@ const navGroups = [
     ],
   },
   {
-    id: 'realestate',
-    label: 'Real Estate',
+    id: 'househunt',
+    label: 'House Hunt',
     items: [
-      { to: '/properties',    label: 'Properties',   icon: Home },
-      { to: '/schools',       label: 'Schools',      icon: GraduationCap },
-      { to: '/contacts',      label: 'Contacts',     icon: Users },
-      { to: '/comms',         label: 'Comms Log',    icon: MessageSquare },
-      { to: '/deadlines',     label: 'Deadlines',    icon: Clock },
-      { to: '/selling',       label: 'Selling',      icon: TrendingDown },
-      { to: '/home-checklist',label: 'Buy Checklist',icon: ClipboardList },
+      { to: '/properties',     label: 'Properties',    icon: Home },
+      { to: '/schools',        label: 'Schools',       icon: GraduationCap },
+      { to: '/house-profile',  label: 'Home Criteria', icon: ListChecks },
+      { to: '/home-checklist', label: 'Buy Checklist', icon: ClipboardList },
+    ],
+  },
+  {
+    id: 'transaction',
+    label: 'Transaction',
+    items: [
+      { to: '/contacts',  label: 'Contacts',  icon: Users },
+      { to: '/comms',     label: 'Comms Log', icon: MessageSquare },
+      { to: '/deadlines', label: 'Deadlines', icon: Clock },
+      { to: '/selling',   label: 'Selling',   icon: TrendingDown },
     ],
   },
   {
     id: 'notes',
-    label: 'Notes & Info',
+    label: 'Notes & Reports',
     items: [
-      { to: '/notes',   label: 'Journal',     icon: BookOpen },
-      { to: '/profile', label: 'Our Profile', icon: User2 },
-    ],
-  },
-  {
-    id: 'ai',
-    label: 'AI Tools',
-    items: [
-      { to: '/reports', label: 'Reports', icon: FileText },
+      { to: '/notes',   label: 'Journal',    icon: BookOpen },
+      { to: '/profile', label: 'Our Profile',icon: User2 },
+      { to: '/reports', label: 'Reports',    icon: FileText },
     ],
   },
 ]
