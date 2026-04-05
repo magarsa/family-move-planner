@@ -4,7 +4,7 @@ import {
   ChevronDown, MapPin, GraduationCap, Trees, Home, LayoutDashboard,
   ChefHat, BedDouble, Wrench, Paintbrush, Baby, DollarSign, Ban,
   Edit3, BarChart2, Printer, StickyNote, X, Plus, Download, Loader2,
-  Sparkles, RefreshCw,
+  Sparkles, RefreshCw, Pencil,
 } from 'lucide-react'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -287,6 +287,112 @@ function PriorityPicker({ value, onChange }: { value: PriorityId; onChange: (v: 
   )
 }
 
+// ─── ItemRow ──────────────────────────────────────────────────────────────────
+
+interface ItemRowProps {
+  item: Item
+  catId: string
+  expandedNotes: Record<string, boolean>
+  onToggleNote: (id: string) => void
+  onUpdate: (catId: string, itemId: string, field: keyof Item, val: string) => void
+  onRemove: (catId: string, itemId: string) => void
+}
+
+function ItemRow({ item, catId, expandedNotes, onToggleNote, onUpdate, onRemove }: ItemRowProps) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(item.label)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function commitEdit() {
+    const trimmed = draft.trim()
+    if (trimmed && trimmed !== item.label) {
+      onUpdate(catId, item.id, 'label', trimmed)
+    } else {
+      setDraft(item.label)
+    }
+    setEditing(false)
+  }
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus()
+  }, [editing])
+
+  return (
+    <motion.div
+      layout
+      className="bg-white dark:bg-stone-800 border border-stone-150 dark:border-stone-700 rounded-xl p-3.5 hover:border-stone-200 dark:hover:border-stone-600 transition-colors"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          {editing ? (
+            <input
+              ref={inputRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={e => {
+                if (e.key === 'Enter') commitEdit()
+                if (e.key === 'Escape') { setDraft(item.label); setEditing(false) }
+              }}
+              className="w-full text-sm font-medium bg-stone-50 dark:bg-stone-900 border border-teal-400 rounded-lg px-2.5 py-1 text-stone-800 dark:text-stone-100 focus:outline-none focus:ring-1 focus:ring-teal-400"
+            />
+          ) : (
+            <div className="flex items-start gap-1.5 group/label">
+              <p className="text-sm font-medium text-stone-800 dark:text-stone-100 leading-snug flex-1">{item.label}</p>
+              <button
+                onClick={() => { setDraft(item.label); setEditing(true) }}
+                title="Edit label"
+                className="opacity-0 group-hover/label:opacity-100 p-0.5 rounded text-stone-300 dark:text-stone-600 hover:text-teal-500 transition-all flex-shrink-0 mt-0.5"
+              >
+                <Pencil size={11} />
+              </button>
+            </div>
+          )}
+          <AnimatePresence>
+            {(expandedNotes[item.id] || item.note) && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <textarea
+                  value={item.note}
+                  onChange={e => onUpdate(catId, item.id, 'note', e.target.value)}
+                  placeholder="Add context or note…"
+                  rows={2}
+                  className="mt-2 w-full text-xs font-mono bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-stone-600 dark:text-stone-300 placeholder-stone-300 dark:placeholder-stone-600 resize-none focus:outline-none focus:ring-1 focus:ring-teal-400"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <PriorityPicker
+            value={item.priority}
+            onChange={v => onUpdate(catId, item.id, 'priority', v)}
+          />
+          <button
+            onClick={() => onToggleNote(item.id)}
+            title="Toggle note"
+            className={`p-1.5 rounded-lg transition-colors ${item.note ? 'text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20' : 'text-stone-300 dark:text-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700'}`}
+          >
+            <StickyNote size={14} />
+          </button>
+          <button
+            onClick={() => onRemove(catId, item.id)}
+            title="Remove"
+            className="p-1.5 rounded-lg text-stone-300 dark:text-stone-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function HouseProfile() {
@@ -505,56 +611,15 @@ export default function HouseProfile() {
 
                 <div className="flex flex-col gap-2">
                   {sortItems(activeCatData.items).map(item => (
-                    <motion.div
+                    <ItemRow
                       key={item.id}
-                      layout
-                      className="bg-white dark:bg-stone-800 border border-stone-150 dark:border-stone-700 rounded-xl p-3.5 hover:border-stone-200 dark:hover:border-stone-600 transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-stone-800 dark:text-stone-100 leading-snug">{item.label}</p>
-                          <AnimatePresence>
-                            {(expandedNotes[item.id] || item.note) && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.15 }}
-                                className="overflow-hidden"
-                              >
-                                <textarea
-                                  value={item.note}
-                                  onChange={e => updateItem(activeCatData.id, item.id, 'note', e.target.value)}
-                                  placeholder="Add context or note…"
-                                  rows={2}
-                                  className="mt-2 w-full text-xs font-mono bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-700 rounded-lg px-2.5 py-1.5 text-stone-600 dark:text-stone-300 placeholder-stone-300 dark:placeholder-stone-600 resize-none focus:outline-none focus:ring-1 focus:ring-teal-400"
-                                />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          <PriorityPicker
-                            value={item.priority}
-                            onChange={v => updateItem(activeCatData.id, item.id, 'priority', v)}
-                          />
-                          <button
-                            onClick={() => setExpandedNotes(p => ({ ...p, [item.id]: !p[item.id] }))}
-                            title="Toggle note"
-                            className={`p-1.5 rounded-lg transition-colors ${item.note ? 'text-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/20' : 'text-stone-300 dark:text-stone-600 hover:bg-stone-50 dark:hover:bg-stone-700'}`}
-                          >
-                            <StickyNote size={14} />
-                          </button>
-                          <button
-                            onClick={() => removeItem(activeCatData.id, item.id)}
-                            title="Remove"
-                            className="p-1.5 rounded-lg text-stone-300 dark:text-stone-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
+                      item={item}
+                      catId={activeCatData.id}
+                      expandedNotes={expandedNotes}
+                      onToggleNote={id => setExpandedNotes(p => ({ ...p, [id]: !p[id] }))}
+                      onUpdate={updateItem}
+                      onRemove={removeItem}
+                    />
                   ))}
                 </div>
 

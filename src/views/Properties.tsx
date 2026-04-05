@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Trash2, Plus, X, ExternalLink, Calendar, Pencil, Calculator } from 'lucide-react'
+import { ChevronDown, ChevronUp, Check, Circle, Clock, Eye, DollarSign, GraduationCap, Home, Loader2, MapPin, Save, ShoppingCart, Sparkles, Star, Trash2, Plus, X, ExternalLink, Calendar, Pencil, Calculator } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -472,11 +472,13 @@ interface PropertyCardProps {
   branches: BranchRow[]
   schools: SchoolRow[]
   profileItems: ProfileItem[]
+  starred: boolean
+  onToggleStar: (id: string) => void
   onUpdate: (id: string, patch: Partial<PropertyRow>) => void
   onDelete: (id: string) => void
 }
 
-function PropertyCard({ property, branches, schools, profileItems, onUpdate, onDelete }: PropertyCardProps) {
+function PropertyCard({ property, branches, schools, profileItems, starred, onToggleStar, onUpdate, onDelete }: PropertyCardProps) {
   const { userName, isDemoMode } = useUser()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
@@ -717,6 +719,13 @@ function PropertyCard({ property, branches, schools, profileItems, onUpdate, onD
             <Calculator size={14} />
           </button>
         )}
+        <button
+          onClick={e => { e.stopPropagation(); onToggleStar(property.id) }}
+          title={starred ? 'Remove from favorites' : 'Add to favorites'}
+          className={`flex-shrink-0 p-1.5 rounded-lg transition-colors ${starred ? 'text-amber-400 hover:text-amber-500' : 'text-stone-300 dark:text-stone-600 hover:text-amber-400 dark:hover:text-amber-400'}`}
+        >
+          <Star size={14} fill={starred ? 'currentColor' : 'none'} />
+        </button>
         {open ? <ChevronUp size={16} className="text-stone-400 flex-shrink-0" /> : <ChevronDown size={16} className="text-stone-400 flex-shrink-0" />}
       </button>
 
@@ -1202,6 +1211,22 @@ export default function Properties() {
   const [statusFilter, setStatusFilter] = useState<PropertyStatus | 'All'>('All')
   const [metroFilter, setMetroFilter] = useState<MetroFilter>('All')
   const [suburbFilter, setSuburbFilter] = useState('')
+  const [starredIds, setStarredIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('starred-properties')
+      return new Set(raw ? JSON.parse(raw) : [])
+    } catch { return new Set() }
+  })
+  const [starredOnly, setStarredOnly] = useState(false)
+
+  function toggleStar(id: string) {
+    setStarredIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      localStorage.setItem('starred-properties', JSON.stringify([...next]))
+      return next
+    })
+  }
 
   function handleMetroChange(f: MetroFilter) {
     setMetroFilter(f)
@@ -1264,7 +1289,8 @@ export default function Properties() {
   const filtered = properties.filter(p =>
     (statusFilter === 'All' || p.status === statusFilter) &&
     (metroFilter === 'All' || METRO_AREAS[metroFilter]?.includes(p.area || '')) &&
-    (suburbFilter === '' || p.area === suburbFilter)
+    (suburbFilter === '' || p.area === suburbFilter) &&
+    (!starredOnly || starredIds.has(p.id))
   )
 
   const counts = {
@@ -1344,9 +1370,15 @@ export default function Properties() {
       <div className="flex gap-2 flex-wrap">
         <button
           onClick={() => setStatusFilter('All')}
-          className={`status-badge cursor-pointer transition-all hover:scale-105 bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300 ${statusFilter === 'All' ? 'ring-2 ring-offset-1 ring-teal-400' : 'opacity-70 hover:opacity-100'}`}
+          className={`status-badge cursor-pointer transition-all hover:scale-105 bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300 ${statusFilter === 'All' && !starredOnly ? 'ring-2 ring-offset-1 ring-teal-400' : 'opacity-70 hover:opacity-100'}`}
         >
           All ({properties.length})
+        </button>
+        <button
+          onClick={() => { setStarredOnly(v => !v); setStatusFilter('All') }}
+          className={`status-badge cursor-pointer transition-all hover:scale-105 flex items-center gap-1 ${starredOnly ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 ring-2 ring-offset-1 ring-amber-400' : 'bg-stone-100 text-stone-500 dark:bg-stone-700 dark:text-stone-400 opacity-70 hover:opacity-100'}`}
+        >
+          <Star size={11} fill={starredOnly ? 'currentColor' : 'none'} /> Starred ({starredIds.size})
         </button>
         {(Object.entries(counts) as [PropertyStatus, number][])
           .filter(([, n]) => n > 0)
@@ -1377,6 +1409,8 @@ export default function Properties() {
               branches={branches}
               schools={schools}
               profileItems={profileItems}
+              starred={starredIds.has(property.id)}
+              onToggleStar={toggleStar}
               onUpdate={handleUpdate}
               onDelete={handleDelete}
             />
