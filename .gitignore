@@ -7,6 +7,7 @@
 /.next
 /out
 /.vercel
+/supabase/.temp
 .DS_Store
 *.log
 *.tsbuildinfo
