@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
 
     const systemPrompt = `You are a friendly real estate assistant helping a family communicate their home search criteria to their agent. Write 2–3 concise sentences summarizing what this family is looking for. Be specific, warm, and agent-friendly. No bullet points. No headers. Plain prose only.`
 
-    const userPrompt = `Here are the Magar family's home search priorities in the Charlotte metro area (Indian Land / Fort Mill / Waxhaw / Tega Cay):
+    const userPrompt = `Here are the Rana Magar family's home search priorities in the Charlotte metro area (Indian Land / Fort Mill / Waxhaw / Tega Cay):
 
 Must Have (${priorities.must.length}):
 ${priorities.must.map(s => `- ${s}`).join('\n')}

@@ -395,7 +395,7 @@ export default function HouseProfile() {
           <div>
             <h1 className="font-serif text-xl font-semibold text-stone-900 dark:text-stone-100">Home Criteria</h1>
             <p className="text-xs text-stone-400 dark:text-stone-500 mt-0.5 font-mono">
-              Magar Family · Charlotte Metro · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              Rana Magar Family · Charlotte Metro · {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </p>
           </div>
           <div className="flex items-center gap-1 bg-stone-100 dark:bg-stone-800 rounded-xl p-1">
@@ -760,7 +760,7 @@ export default function HouseProfile() {
             ))}
 
             <div className="border-t border-stone-200 mt-8 pt-3 text-center text-[11px] text-stone-400 font-mono">
-              Magar Family Home Search · Charlotte Metro · magarsa.dev
+              Magar Family Home Search · Charlotte Metro
             </div>
           </div>
         </div>
