@@ -410,8 +410,22 @@ export default function HouseProfile() {
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState('')
   const [, setProfileLoading] = useState(true)
+  const [catChipsExpanded, setCatChipsExpanded] = useState(false)
+  const [catChipsOverflow, setCatChipsOverflow] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const catChipsRef = useRef<HTMLDivElement>(null)
+
+  // Detect whether the chip grid overflows 2 rows
+  useEffect(() => {
+    const el = catChipsRef.current
+    if (!el) return
+    const check = () => setCatChipsOverflow(el.scrollHeight > el.clientHeight + 2)
+    check()
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   // Load saved categories from Supabase on mount, merging saved priorities into INITIAL_CATEGORIES
   // so any new items added to INITIAL_CATEGORIES in code are always present.
@@ -574,16 +588,20 @@ export default function HouseProfile() {
       {view === 'edit' && (
         <div className="flex flex-col flex-1 overflow-hidden">
 
-          {/* Mobile: horizontal scrollable category tabs */}
-          <div className="sm:hidden flex-shrink-0 bg-white dark:bg-stone-900 border-b border-stone-100 dark:border-stone-800 overflow-x-auto">
-            <div className="flex gap-1.5 px-3 py-2.5" style={{ minWidth: 'max-content' }}>
+          {/* Mobile: wrapping chip grid */}
+          <div className="sm:hidden flex-shrink-0 bg-white dark:bg-stone-900 border-b border-stone-100 dark:border-stone-800">
+            <div
+              ref={catChipsRef}
+              className="flex flex-wrap gap-1.5 px-3 pt-2.5 overflow-hidden transition-[max-height] duration-300 ease-in-out"
+              style={{ maxHeight: catChipsExpanded ? `${catChipsRef.current?.scrollHeight ?? 9999}px` : '72px' }}
+            >
               {categories.map(c => {
                 const isActive = activeCat === c.id
                 return (
                   <button
                     key={c.id}
                     onClick={() => setActiveCat(c.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex-shrink-0
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all
                       ${isActive
                         ? 'bg-teal-600 text-white shadow-sm'
                         : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400'}`}
@@ -593,6 +611,18 @@ export default function HouseProfile() {
                   </button>
                 )
               })}
+            </div>
+            {/* Expand / collapse row — only shown when chips overflow 2 rows */}
+            <div className={`flex justify-center pb-1.5 ${catChipsOverflow ? 'pt-1' : 'pt-2'}`}>
+              {catChipsOverflow && (
+                <button
+                  onClick={() => setCatChipsExpanded(p => !p)}
+                  className="flex items-center gap-1 text-[11px] font-medium text-stone-400 dark:text-stone-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors px-3 py-1"
+                >
+                  <ChevronDown size={12} className={`transition-transform duration-200 ${catChipsExpanded ? 'rotate-180' : ''}`} />
+                  {catChipsExpanded ? 'Show less' : 'Show more'}
+                </button>
+              )}
             </div>
           </div>
 
